@@ -174,6 +174,8 @@ public class Main {
         System.out.println("  java watersort.Main --generate N    Generate puzzle with N colors");
         System.out.println("  java watersort.Main --generate N D  Generate with difficulty (easy/medium/hard)");
         System.out.println("  java watersort.Main --batch N C     Generate C puzzles with N colors");
+        System.out.println("  java watersort.Main --file F.json   Solve a puzzle from a JSON file");
+        System.out.println("  java watersort.Main --image F.png   Recognize a screenshot, then solve it");
         System.out.println("  java watersort.Main --help          Show this help");
     }
 }

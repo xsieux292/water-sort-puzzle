@@ -7,13 +7,15 @@
 ## Phase Overview
 
 ```
-Phase 1:   Core Logic & Algorithm        ← เราอยู่ตรงนี้
-Phase 2:   CLI Polish & Testing
-Phase 2.5: Image Recognition Pipeline    ← ★ NEW
-Phase 3:   Desktop UI (JavaFX) + Solution Playback
-Phase 4:   Web UI (Optional)
+Phase 1:   Core Logic & Algorithm        ✅ เสร็จ
+Phase 2:   CLI Polish & Testing          🟡 ส่วนใหญ่เสร็จ (ค้าง: timeout, integration tests 10+ ด่าน)
+Phase 2.5: Image Recognition Pipeline    ✅ เสร็จ (Approach C — Hybrid)
+Phase 3:   Desktop UI (JavaFX) + Solution Playback   ✅ เสร็จ (ค้าง: Save/Load)
+Phase 4:   Web UI (Optional)             ⬜ ยังไม่เริ่ม
 ```
 
+> สัญลักษณ์: ✅ เสร็จ · 🟡 ทำบางส่วน · ⬜ ยังไม่ทำ
+>
 > **วิสัยทัศน์ใหม่**: โปรเจกต์นี้ไม่ใช่แค่ solver — แต่เป็น **เครื่องมือครบวงจร**
 > ที่ผู้ใช้แค่ถ่ายภาพหน้าจอเกม → ระบบจัดการทุกอย่างให้อัตโนมัติ → แสดง solution ทีละ step
 
@@ -27,43 +29,43 @@ Phase 4:   Web UI (Optional)
 
 | Task | File | Status |
 |---|---|---|
-| สร้าง `Tube` class (push, pop, peek, isFull, isEmpty, isSorted, deepCopy) | `model/Tube.java` | ⬜ |
-| สร้าง `Move` record (source, destination) | `model/Move.java` | ⬜ |
-| สร้าง `BoardState` class (tubes array, isGoal, getValidMoves, applyMove) | `model/BoardState.java` | ⬜ |
-| Implement `equals()` + `hashCode()` สำหรับ `BoardState` | `model/BoardState.java` | ⬜ |
-| Implement `toCanonicalString()` สำหรับ state caching | `model/BoardState.java` | ⬜ |
-| Unit test: `TubeTest` — push/pop/isSorted/deepCopy | `test/.../TubeTest.java` | ⬜ |
-| Unit test: `BoardStateTest` — isGoal/getValidMoves/applyMove/equality | `test/.../BoardStateTest.java` | ⬜ |
+| สร้าง `Tube` class (push, pop, peek, isFull, isEmpty, isSorted, deepCopy) | `model/Tube.java` | ✅ |
+| สร้าง `Move` record (source, destination) | `model/Move.java` | ✅ |
+| สร้าง `BoardState` class (tubes array, isGoal, getValidMoves, applyMove) | `model/BoardState.java` | ✅ |
+| Implement `equals()` + `hashCode()` สำหรับ `BoardState` | `model/BoardState.java` | ✅ |
+| Implement `toCanonicalString()` สำหรับ state caching | `model/BoardState.java` | ✅ |
+| Unit test: `TubeTest` — push/pop/isSorted/deepCopy | `test/.../TubeTest.java` | ✅ |
+| Unit test: `BoardStateTest` — isGoal/getValidMoves/applyMove/equality | `test/.../BoardStateTest.java` | ✅ |
 
 ### Milestone 1.2 — BFS Solver
 
 | Task | File | Status |
 |---|---|---|
-| สร้าง `Solver` interface (solve method) | `solver/Solver.java` | ⬜ |
-| สร้าง `SolveResult` class (moves, stats) | `solver/SolveResult.java` | ⬜ |
-| Implement `BFSSolver` — BFS ตาม spec | `solver/BFSSolver.java` | ⬜ |
-| Implement pruning rules (no reverse, skip completed, identical empties) | `solver/BFSSolver.java` | ⬜ |
-| Unit test: ด่านง่าย (3 หลอด 1 สี) → ต้องได้คำตอบ | `test/.../BFSSolverTest.java` | ⬜ |
-| Unit test: ด่านปานกลาง (5 หลอด) → ต้องได้ optimal | `test/.../BFSSolverTest.java` | ⬜ |
-| Unit test: ด่านที่แก้ไม่ได้ → ต้อง return null | `test/.../BFSSolverTest.java` | ⬜ |
+| สร้าง `Solver` interface (solve method) | `solver/Solver.java` | ✅ |
+| สร้าง `SolveResult` class (moves, stats) | `solver/SolveResult.java` | ✅ |
+| Implement `BFSSolver` — BFS ตาม spec | `solver/BFSSolver.java` | ✅ |
+| Implement pruning rules (no reverse, skip completed, identical empties) | `solver/BFSSolver.java` | ✅ |
+| Unit test: ด่านง่าย (3 หลอด 1 สี) → ต้องได้คำตอบ | `test/.../BFSSolverTest.java` | ✅ |
+| Unit test: ด่านปานกลาง (5 หลอด) → ต้องได้ optimal | `test/.../BFSSolverTest.java` | ✅ |
+| Unit test: ด่านที่แก้ไม่ได้ → `isSolved() == false` | `test/.../BFSSolverTest.java` | ✅ |
 
 ### Milestone 1.3 — A* Solver
 
 | Task | File | Status |
 |---|---|---|
-| Implement heuristic function (color-change count) | `solver/AStarSolver.java` | ⬜ |
-| Implement `AStarSolver` — A* ตาม spec | `solver/AStarSolver.java` | ⬜ |
-| เทียบ performance BFS vs A* กับด่านจริง 14 หลอด | benchmark | ⬜ |
+| Implement heuristic function (color-change count) | `solver/AStarSolver.java` | ✅ |
+| Implement `AStarSolver` — A* ตาม spec | `solver/AStarSolver.java` | ✅ |
+| เทียบ performance BFS vs A* กับด่านจริง 14 หลอด (ผลอยู่ใน README → Performance) | benchmark | ✅ |
 
 ### Milestone 1.4 — CLI Entry Point
 
 | Task | File | Status |
 |---|---|---|
-| สร้าง `BoardParser` — parse input จาก stdin/file | `util/BoardParser.java` | ⬜ |
-| สร้าง `Main.java` — CLI entry point | `Main.java` | ⬜ |
-| รองรับ JSON input file | `util/BoardParser.java` | ⬜ |
-| แสดงผลลัพธ์แบบ step-by-step | `Main.java` | ⬜ |
-| แสดง stats (states explored, time elapsed) | `Main.java` | ⬜ |
+| สร้าง `BoardParser` — parse input จาก stdin/file | `util/BoardParser.java` | ✅ |
+| สร้าง `Main.java` — CLI entry point | `Main.java` | ✅ |
+| รองรับ JSON input file | `util/BoardParser.java` | ✅ |
+| แสดงผลลัพธ์แบบ step-by-step | `Main.java` | ✅ |
+| แสดง stats (states explored, time elapsed) | `Main.java` | ✅ |
 
 ---
 
@@ -73,13 +75,13 @@ Phase 4:   Web UI (Optional)
 
 | Task | Status |
 |---|---|
-| Error handling สำหรับ invalid input | ⬜ |
-| Timeout mechanism (เช่น 30 วินาที) | ⬜ |
-| Memory limit warning | ⬜ |
+| Error handling สำหรับ invalid input (JSON ผิด format, ภาพอ่านไม่ได้, บอร์ดไม่ valid ใน UI) | ✅ |
+| Timeout mechanism (เช่น 30 วินาที) | ⬜ — ตอนนี้จำกัดที่จำนวน state (2,000,000) แทนเวลา |
+| Memory limit warning | ⬜ — ตอนนี้ใช้เพดาน 2,000,000 states + แอป GUI รันด้วย `-Xmx2g` |
 | เพิ่ม integration tests กับด่านจริง 10+ ด่าน | ⬜ |
-| Performance profiling & optimization | ⬜ |
-| สร้าง `build.gradle` หรือ `pom.xml` สำหรับ build tool | ⬜ |
-| README: เพิ่ม benchmark results | ⬜ |
+| Performance profiling & optimization (A* parent-pointer, heuristic h2, cached key) | ✅ |
+| สร้าง `build.gradle` หรือ `pom.xml` สำหรับ build tool (ใช้ `build.gradle.kts`) | ✅ |
+| README: เพิ่ม benchmark results | ✅ |
 
 ---
 
@@ -110,6 +112,9 @@ Phase 4:   Web UI (Optional)
 
 > **แนะนำ**: เริ่มจาก **Approach C (Hybrid)** เพราะประหยัดและควบคุมได้
 > ถ้าแม่นไม่พอ ค่อยเพิ่ม Approach B เป็น fallback
+>
+> ✅ **เลือกแล้ว: Approach C** — Classical CV (OpenCV) ตรวจจับหลอด + จัดกลุ่มสีด้วย clustering ใน LAB
+> (ภาพตัวอย่าง `test_image.png` อ่านถูก 100%; Vision API fallback ยังไม่ได้ทำ)
 
 ### Step-by-Step Pipeline Detail
 
@@ -131,23 +136,28 @@ Input: ภาพหน้าจอเกม (เช่น 1024x1024 px)
 Output: List<Image> tubeImages (เรียงตามลำดับ)
 ```
 
-#### Step 2 — Color Extraction & Identification
+#### Step 2 — Color Extraction & Identification (ตามที่ implement จริง)
 
 ```
-Input: sub-image ของหลอด 1 หลอด
+Input: sub-image ของหลอด 1 หลอด (bounds จาก Step 1 รวมฝาหลอดด้านบนมาด้วย)
 
-1. แบ่งหลอดเป็น 4 ช่อง (slot) เท่าๆกัน (top → bottom)
+1. ตัดฝาหลอดด้านบน (CAP_FRACTION = 13% ของความสูง) และขอบโค้งด้านล่าง (1.5%)
+   แล้วแบ่งส่วนที่เหลือเป็น 4 ช่อง (slot) เท่า ๆ กัน
 2. สำหรับแต่ละ slot:
-   a. Crop ส่วนกลางของ slot (หลีกเลี่ยงขอบหลอด/ไฮไลท์)
-   b. Convert to HSV color space
-   c. Calculate dominant color (K-Means clustering, k=1)
-   d. Map dominant HSV → nearest known color ID
-      - ใช้ predefined color palette (Red, Blue, Green, ...)
-      - หรือ auto-detect palette จากทุก slot ในภาพ
-3. ถ้า slot เป็นสีพื้นหลัง (dark/transparent) → ถือว่าว่าง
+   a. ใช้เฉพาะกึ่งกลาง (เว้นขอบ 40% ทั้งแนวตั้ง/แนวนอน) เลี่ยงขอบหลอด/ไฮไลท์
+   b. คำนวณค่าเฉลี่ย LAB, HSV และ RGB ของพื้นที่นั้น
+3. แยก "ช่องว่าง" ออกจาก "บล็อกสี": ช่องว่าง = พื้นหลังมืดที่ไม่มีสี (L ≤ 55 และ chroma ≤ 15)
+   — บล็อกสีเข้มแต่อิ่มตัวยังนับเป็นสี
+4. จัดกลุ่มสีทั้งภาพด้วย constrained agglomerative clustering ใน LAB
+   (average linkage, ≤ 4 บล็อกต่อกลุ่ม, จำนวนกลุ่ม = จำนวนบล็อกสี ÷ 4)
+5. ตั้งชื่อสีของแต่ละกลุ่มด้วย ColorNamer (nearest reference, redmean distance)
+   และส่งค่า RGB จริงของกลุ่มออกไปให้ UI วาดบอร์ดตรงกับเกม
 
-Output: int[] colors (ขนาด 0–4)
+Output: int[] colors (ขนาด 0–4, ก้นหลอด → บนสุด)
 ```
+
+> **ต่างจากแผนเดิม**: ไม่ใช้ HSV lookup ตายตัว + K-Means k=1 ต่อ slot เพราะต้อง tune ค่าต่อธีม —
+> การจัดกลุ่มแบบ "ทุกสีต้องมี 4 บล็อก" ไม่ต้องรู้ palette ล่วงหน้า (`ColorPalette` ยังอยู่ในโค้ดเป็น HSV lookup อ้างอิง แต่ pipeline หลักไม่เรียกใช้)
 
 #### Step 3 — Validation & BoardState Construction
 
@@ -165,17 +175,21 @@ Output: int[] colors (ขนาด 0–4)
  * ผลลัพธ์จากการ recognize ภาพ
  */
 class RecognitionResult {
-    BoardState boardState;           // สถานะที่ extract ได้
+    BoardState boardState;           // สถานะที่ extract ได้ (null ถ้าอ่านไม่ได้เลย)
     List<TubeRegion> tubeRegions;    // ตำแหน่งของหลอดในภาพ
-    Map<Integer, String> colorMap;   // color ID → ชื่อสี
-    double confidence;               // ความมั่นใจ (0.0–1.0)
-    List<String> warnings;           // เช่น "สีที่ slot 3 ไม่ชัด"
+    Map<Integer, String> colorMap;   // color ID → ชื่อสี (เช่น "Light Green")
+    Map<Integer, int[]> colorRgb;    // color ID → {r,g,b} จริงที่วัดได้ (ให้ UI วาดสีตรงกับเกม)
+    double confidence;               // ความมั่นใจ (1.0 = ผ่าน validation, 0.5 = ไม่ผ่าน)
+    List<String> warnings;           // เช่น "Colored blocks count (47) is not a multiple of 4."
+    List<String> errors;             // เช่น "Color 'Red' has 3 blocks (expected 4)."
+    boolean isValid;                 // validation ผ่านหรือไม่
 }
 
 class TubeRegion {
     int tubeIndex;
     Rectangle bounds;      // พิกัดในภาพต้นฉบับ
-    int[] extractedColors; // สีที่ extract ได้
+    int[] extractedColors; // สีที่ extract ได้ (ก้นหลอด → บนสุด)
+    double[] slotConfidences; // ปัจจุบันเป็นค่าคงที่ 1.0 (ยังไม่ได้คำนวณจริงต่อ slot)
 }
 ```
 
@@ -183,16 +197,17 @@ class TubeRegion {
 
 | Task | File | Status |
 |---|---|---|
-| ตัดสินใจ approach (A/B/C) | — | ⬜ |
-| Setup OpenCV dependency (ถ้าใช้ approach A/C) | `pom.xml` / `build.gradle` | ⬜ |
-| Implement `TubeDetector` — detect & crop tubes from screenshot | `vision/TubeDetector.java` | ⬜ |
-| Implement `ColorExtractor` — extract dominant color per slot | `vision/ColorExtractor.java` | ⬜ |
-| สร้าง `ColorPalette` — predefined HSV ranges for known colors | `vision/ColorPalette.java` | ⬜ |
-| Implement `ImageRecognizer` — orchestrate pipeline (detect → extract → validate) | `vision/ImageRecognizer.java` | ⬜ |
-| สร้าง `RecognitionResult` + `TubeRegion` data classes | `vision/RecognitionResult.java` | ⬜ |
-| Unit test: ทดสอบกับภาพตัวอย่าง (14 หลอด) → ต้อง extract ถูกต้อง | `test/.../ImageRecognizerTest.java` | ⬜ |
+| ตัดสินใจ approach (A/B/C) → เลือก C (Hybrid) | — | ✅ |
+| Setup OpenCV dependency (ถ้าใช้ approach A/C) | `pom.xml` / `build.gradle` | ✅ |
+| Implement `TubeDetector` — detect & crop tubes from screenshot | `vision/TubeDetector.java` | ✅ |
+| Implement `ColorExtractor` — extract สีเฉลี่ย LAB/HSV/RGB ต่อ slot | `vision/ColorExtractor.java` | ✅ |
+| สร้าง `ColorPalette` — predefined HSV ranges for known colors (อ้างอิง; pipeline หลักใช้ clustering) | `vision/ColorPalette.java` | ✅ |
+| สร้าง `ColorNamer` — ตั้งชื่อสีที่อ่านง่ายจาก RGB | `vision/ColorNamer.java` | ✅ |
+| Implement `ImageRecognizer` — orchestrate pipeline (detect → extract → validate) | `vision/ImageRecognizer.java` | ✅ |
+| สร้าง `RecognitionResult` + `TubeRegion` data classes | `vision/RecognitionResult.java` | ✅ |
+| Unit test: ทดสอบกับภาพตัวอย่าง (14 หลอด) → ต้อง extract ถูกต้อง | `test/.../ImageRecognizerTest.java` | ✅ |
 | Unit test: ทดสอบกับ theme/background ที่ต่างกัน | `test/.../ImageRecognizerTest.java` | ⬜ |
-| Implement user confirmation flow — แสดง preview ก่อน solve | `vision/ImageRecognizer.java` | ⬜ |
+| Implement user confirmation flow — แสดง preview ก่อน solve (อยู่ในชั้น UI: Recognition Preview + Confirm) | `ui/MainView.java` | ✅ |
 | (Optional) เพิ่ม Vision API fallback (Approach B) | `vision/VisionApiFallback.java` | ⬜ |
 
 ---
@@ -252,11 +267,17 @@ class TubeRegion {
 | **📊 Progress Bar** | แสดง Step X/Y + progress bar |
 | **▶️ Auto-Play** | กด play แล้วระบบเล่น animation ต่อเนื่องจนจบ (ปรับความเร็วได้) |
 | **Preset Puzzles** | มีด่านตัวอย่างให้เลือกทดลอง |
+| **🧭 Mode Select** | หน้าแรกให้เลือกโหมด: (1) Image Recognizer (2) Play Game |
+| **🎮 Play Game** | ระบบสร้างด่านด้วย `PuzzleGenerator` ผู้เล่นคลิกหลอดเทเอง มี Undo / Restart / Hint / Solve for me |
 
 ### User Flow (End-to-End)
 
 ```
-1. ผู้ใช้เปิดแอป
+0. ผู้ใช้เปิดแอป → เลือกโหมด
+   ├── 🎮 Play Game: เลือกจำนวนสี/ความยาก → Generate → ผู้เล่นเท (Undo/Hint/Solve for me)
+   └── 📸 Image Recognizer: ไปต่อขั้นตอนด้านล่าง
+         │
+1. (โหมด Image Recognizer)
          │
 2. เลือกวิธี input:
    ├── 📸 อัปโหลดภาพหน้าจอ  ───────────────────────┐
@@ -283,19 +304,21 @@ class TubeRegion {
 
 | Task | Status |
 |---|---|
-| Setup JavaFX project module | ⬜ |
-| สร้าง `UploadPane` — Drag & Drop zone สำหรับอัปโหลดภาพ | ⬜ |
-| สร้าง `RecognitionPreviewPane` — แสดงภาพต้นฉบับ + ไฮไลท์หลอด + สีที่ extract ได้ | ⬜ |
-| สร้าง `TubeView` component — แสดงหลอดเป็น Rectangle + Color | ⬜ |
-| สร้าง `BoardView` — layout หลอดทั้งหมดแบบ grid | ⬜ |
-| สร้าง `ColorPicker` panel สำหรับ edit mode (แก้ไขสีที่ recognize ผิด) | ⬜ |
-| สร้าง control bar (Confirm / Solve / Next / Prev / Auto-Play / Reset) | ⬜ |
-| เชื่อม Vision Pipeline (Phase 2.5) กับ UI | ⬜ |
-| เชื่อม Solver กับ UI (run on background thread) | ⬜ |
-| Implement step-by-step playback + progress bar | ⬜ |
-| Implement pour animation (TranslateTransition) | ⬜ |
-| Implement auto-play mode (ปรับความเร็วได้) | ⬜ |
-| Light/Dark theme support | ⬜ |
+| Setup JavaFX project module | ✅ |
+| สร้าง `UploadPane` — Drag & Drop zone สำหรับอัปโหลดภาพ | ✅ |
+| สร้าง `RecognitionPreviewPane` — แสดงภาพต้นฉบับ + ไฮไลท์หลอด + สีที่ extract ได้ | ✅ |
+| สร้าง `TubeView` component — แสดงหลอดเป็น Rectangle + Color | ✅ |
+| สร้าง `BoardView` — layout หลอดทั้งหมดแบบ grid | ✅ |
+| สร้าง `ColorPicker` panel สำหรับ edit mode (แก้ไขสีที่ recognize ผิด) | ✅ |
+| สร้าง control bar (Confirm / Solve / Next / Prev / Auto-Play / Reset) | ✅ |
+| เชื่อม Vision Pipeline (Phase 2.5) กับ UI | ✅ |
+| เชื่อม Solver กับ UI (run on background thread) | ✅ |
+| Implement step-by-step playback + progress bar | ✅ |
+| Implement pour animation (TranslateTransition) | ✅ |
+| Implement auto-play mode (ปรับความเร็วได้) | ✅ |
+| Light/Dark theme support | ✅ |
+| หน้าเลือกโหมด: (1) Image Recognizer / (2) Play Game | ✅ |
+| โหมด Play Game: สร้างด่านด้วย `PuzzleGenerator`, ผู้เล่นเทเอง, Undo/Restart/Hint/Solve for me | ✅ |
 | Save/Load puzzle state | ⬜ |
 
 ---
@@ -340,9 +363,10 @@ Deploy:   Docker + any cloud platform
 |---|---|---|
 | **Java 17+** | Main language | All |
 | **JUnit 5** | Unit testing | 1–2 |
-| **Gradle** or **Maven** | Build automation | 2+ |
+| **Gradle (Kotlin DSL)** | Build automation (`./gradlew build/test/run/runCli`) | 2+ |
+| **JaCoCo** | Test coverage report | 2+ |
 | **OpenCV (JavaCV)** | Image processing — tube detection, color extraction | 2.5 |
-| **JavaFX 21** | Desktop GUI + Solution Playback | 3 |
+| **JavaFX 21** (org.openjfx plugin) | Desktop GUI + Solution Playback | 3 |
 | **Spring Boot** | Web backend (ถ้าเลือก) | 4 |
 | *(Optional)* **Google Cloud Vision / Gemini API** | Vision API fallback สำหรับ recognition ที่แม่นยำกว่า | 2.5 |
 

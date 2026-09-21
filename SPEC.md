@@ -22,7 +22,7 @@
 |---|---|
 | **จำนวนสี** | `N - 2` สี (= จำนวนหลอดที่ไม่ว่าง) |
 | **จำนวนบล็อกต่อสี** | **4 บล็อก** ต่อ 1 สี (เท่ากับ TUBE_CAPACITY) |
-| **การแทนค่า** | ใช้ `enum` หรือ `int` (0, 1, 2, ...) หรือ `String` ("Red", "Blue", ...) |
+| **การแทนค่า** | ใน solver ใช้ `int` เป็น color ID (เริ่มที่ 1) — ชื่อสี ("Red", "Blue", ...) ใช้เฉพาะตอนอ่าน input/แสดงผล |
 
 ### 1.3 Board (กระดาน)
 
@@ -55,18 +55,22 @@ RULE 4: destination.isEmpty()                    // หลอดปลายท�
 3. **Multi-pour**: ถ้า source ยังมีสีบนสุดเป็นสีเดิม และ destination ยังไม่เต็ม → เทต่อ
    (ตามพฤติกรรมจริงของเกม ที่เทหลายบล็อกพร้อมกันถ้าสีเดียวกัน)
 
-> **Note**: ในเวอร์ชัน BFS พื้นฐาน อาจเททีละ 1 บล็อกก่อน แล้วค่อย optimize เป็น multi-pour
+> **Note**: implementation ปัจจุบันใช้ multi-pour เสมอ (`BoardState.applyMove`) — 1 move = เททุกบล็อกสีเดียวกันที่เทได้ในครั้งเดียว
+> จำนวน step ที่รายงาน (และ "Best possible" ในโหมด Play Game) นับตามนิยามนี้
 
 ### 2.3 Pruning Rules (กฎตัดกิ่ง — ลดการค้นหาที่ไม่จำเป็น)
 
-เพื่อลดจำนวน state ที่ต้องสำรวจ ควรตัดกิ่งเหล่านี้:
+เพื่อลดจำนวน state ที่ต้องสำรวจ solver ตัดกิ่งเหล่านี้ (implement ใน `BoardState.getValidMoves()`):
 
-| Rule | Description |
-|---|---|
-| **No reverse move** | ห้ามเทกลับทันที (A→B แล้ว B→A ในก้าวถัดไป) |
-| **Skip completed tubes** | หลอดที่ sorted เต็มแล้ว (4 สีเดียวกัน) ไม่ต้องเทออก |
-| **Skip single-color source to empty** | ถ้า source มีแต่สีเดียว ไม่จำเป็นต้องเทไปหลอดเปล่า (ไม่มีประโยชน์) |
-| **Identical empty tubes** | หลอดเปล่าทุกหลอดเท่ากัน → เทไปหลอดเปล่าแรกก็พอ |
+| Rule | Description | Implement |
+|---|---|---|
+| **No reverse move** | ไม่เทวนกลับไปกลับมา | ✅ ผ่าน state caching (BFS: `visited`, A*: `gScore`) ไม่ได้ตัดใน `getValidMoves()` |
+| **Skip completed tubes** | หลอดที่ sorted เต็มแล้ว (4 สีเดียวกัน) ไม่ต้องเทออก | ✅ `getValidMoves()` |
+| **Skip single-color source to empty** | ถ้า source มีแต่สีเดียว ไม่จำเป็นต้องเทไปหลอดเปล่า (ไม่มีประโยชน์) | ✅ `getValidMoves()` |
+| **Identical empty tubes** | หลอดเปล่าทุกหลอดเท่ากัน → เทไปหลอดเปล่าแรกก็พอ | ✅ `getValidMoves()` |
+
+> Pruning ใช้กับ **solver เท่านั้น** — ในโหมด Play Game ผู้เล่นเทได้ทุก move ที่ถูกกติกาตาม 2.1
+> (`GameSession.canPour`) รวมถึง move ที่ solver ตัดทิ้ง
 
 ---
 
@@ -126,7 +130,9 @@ class BoardState {
     BoardState applyMove(Move move);      // สร้าง state ใหม่หลังเทน้ำ
 
     // --- Hashing ---
-    String toCanonicalString();           // แปลงเป็น string เพื่อเทียบ/hash
+    // string กระชับ: 1 char ต่อ 1 บล็อกสี + '/' คั่นหลอด (cache ไว้ในตัว state)
+    // equals()/hashCode() อิงจาก string นี้ → ใช้เป็น key ของ HashSet/HashMap ได้ตรง ๆ
+    String toCanonicalString();
     @Override int hashCode();
     @Override boolean equals(Object o);
 }
@@ -150,13 +156,18 @@ record Move(int source, int destination) {
 
 ```java
 /**
- * Node ในกราฟการค้นหา เก็บสถานะปัจจุบัน + ประวัติการเท
+ * Node ในกราฟการค้นหา
+ * BFS  : เก็บ moveHistory ทั้งเส้นทางใน node
+ * A*   : เก็บแค่ move ล่าสุด + ตัวชี้ parent แล้ว reconstruct ตอนเจอ goal (ประหยัดเวลา/หน่วยความจำ)
  */
 class SearchNode {
     BoardState state;
-    List<Move> moveHistory;   // ลำดับ move ตั้งแต่เริ่มจนถึง state นี้
-    int cost;                 // g(n) = จำนวน moves (สำหรับ A*)
-    int heuristic;            // h(n) = estimated remaining cost (สำหรับ A*)
+    SearchNode parent;        // (A*) node ก่อนหน้า
+    Move move;                // (A*) move ที่พามาถึง state นี้ (null = ราก)
+    List<Move> moveHistory;   // (BFS) ลำดับ move ตั้งแต่เริ่มจนถึง state นี้
+    int g;                    // จำนวน moves ที่ทำมาแล้ว
+    int h;                    // heuristic — estimated remaining cost (A*)
+    int f;                    // g + h (A*)
 }
 ```
 
@@ -187,35 +198,36 @@ function solveBFS(initialState):
                 newMoveHistory ← node.moveHistory + [move]
                 queue.enqueue(SearchNode(newState, newMoveHistory))
 
-    return null  // ❌ ด่านนี้ไม่มีทางออก
+    return null  // ❌ ด่านนี้ไม่มีทางออก (implementation: SolveResult.failure → isSolved() == false)
 ```
 
 **คุณสมบัติ**: BFS รับประกันว่าจะเจอคำตอบที่ **จำนวน move น้อยที่สุด**
+
+> **เพดานการค้นหา**: ทั้ง BFS และ A* หยุดเมื่อสำรวจครบ `MAX_STATES = 2,000,000` แล้วรายงานว่าไม่พบคำตอบ
 
 ### 5.2 A* Search — เวอร์ชัน Optimized
 
 ```
 function solveAStar(initialState):
-    openSet ← PriorityQueue (sorted by f = g + h)
-    visited ← empty HashSet
+    openSet ← PriorityQueue (เรียงตาม f = g + h; ถ้า f เท่ากัน เลือก h น้อยกว่าก่อน)
+    gScore  ← Map<StateKey, int>     // ต้นทุนที่ดีที่สุดที่รู้จนถึงแต่ละ state
 
-    startNode ← SearchNode(initialState, emptyMoveList, g=0, h=heuristic(initialState))
-    openSet.add(startNode)
+    openSet.add(Node(initialState, parent=null, move=null, g=0))
+    gScore[initialState] ← 0
 
     while openSet is not empty:
-        node ← openSet.poll()     // ดึง node ที่ f(n) ต่ำสุด
+        node ← openSet.poll()                    // f(n) ต่ำสุด
+        if node.g > gScore[node.state]: continue // entry เก่า (เจอทางที่สั้นกว่าแล้ว) → ข้าม
 
         if node.state.isGoal():
-            return node.moveHistory
-
-        visited.add(node.state)
+            return reconstructPath(node)         // ไล่ parent กลับไปราก แล้วกลับลำดับ
 
         for each move in node.state.getValidMoves():
             newState ← node.state.applyMove(move)
-            if newState not in visited:
-                g ← node.cost + 1
-                h ← heuristic(newState)
-                openSet.add(SearchNode(newState, node.moveHistory + [move], g, h))
+            g ← node.g + 1
+            if g < gScore.getOrDefault(newState, ∞):
+                gScore[newState] ← g
+                openSet.add(Node(newState, parent=node, move=move, g))
 
     return null
 ```
@@ -224,18 +236,21 @@ function solveAStar(initialState):
 
 ```
 function heuristic(state):
-    score ← 0
+    // h1: จำนวน "รอยต่อที่สีเปลี่ยน" รวมทุกหลอด
+    h1 ← 0
     for each tube in state.tubes:
-        if tube is not empty and not sorted:
-            // นับจำนวน "การเปลี่ยนสี" ในหลอด
-            // ยิ่งเปลี่ยนสีบ่อย → ยิ่งต้องเทมาก
-            for i from 1 to tube.size - 1:
-                if tube[i] ≠ tube[i-1]:
-                    score += 1
-    return score
+        for i from 1 to tube.size - 1:
+            if tube[i] ≠ tube[i-1]: h1 += 1
+
+    // h2: สีที่กระจายอยู่ k หลอด ต้องรวมให้เหลือหลอดเดียว → อย่างน้อย k-1 การเท
+    h2 ← Σ over colors c of (จำนวนหลอดที่มีสี c  −  1)
+
+    return max(h1, h2)
 ```
 
-> **หมายเหตุ**: heuristic นี้เป็น admissible (ไม่ overestimate) จึงรับประกันว่า A* จะเจอ optimal solution
+> **ความ admissible**: การเท 1 ครั้งลด h1 ได้ไม่เกิน 1 (ย้ายกลุ่มสีเดียวกันออกได้ครั้งละ 1 รอยต่อ)
+> และลด h2 ได้ไม่เกิน 1 (มีผลกับสีที่ถูกเทเพียงสีเดียว) ทั้งคู่เป็น 0 ที่สถานะชนะ →
+> `max(h1, h2)` ไม่ overestimate จึงรับประกันว่า A* เจอ optimal solution (มี unit test เทียบ step count กับ BFS)
 
 ---
 
@@ -253,7 +268,7 @@ Tube 4 (bottom to top, comma-separated):
 Tube 5 (bottom to top, comma-separated):
 ```
 
-**Option B — JSON file:**
+**Option B — JSON file:** (`--file puzzle.json`)
 ```json
 {
   "tubes": [
@@ -273,24 +288,42 @@ Tube 5 (bottom to top, comma-separated):
 
 ### 6.2 Output Format
 
+ตัวอย่างเอาต์พุตจริงของ `--demo`:
+
 ```
-🔍 Solving Water Sort Puzzle...
-   Tubes: 5 | Colors: 3 | Capacity: 4
+📋 Demo puzzle loaded:
 
-✅ Solution found in 12 steps!
+Board:
+  Tube  1: [1, 2, 1, 3]
+  ...
 
-Step  1: Pour Tube 1 → Tube 4    (Red)
-Step  2: Pour Tube 2 → Tube 5    (Blue)
-Step  3: Pour Tube 1 → Tube 2    (Red)
-...
-Step 12: Pour Tube 3 → Tube 5    (Green)
+🔍 Solving...
+
+✅ Solved in 10 steps | States: 55 | Time: 5ms
+
+  Step  1: Pour Tube 2 → Tube 4
+  Step  2: Pour Tube 3 → Tube 4
+  ...
+  Step 10: Pour Tube 2 → Tube 4
 
 🎉 All tubes sorted!
 
-📊 Stats:
-   States explored: 1,247
-   Time elapsed: 0.03s
+📊 Stats: 55 states explored in 5ms
 ```
+
+### 6.3 CLI Options
+
+| Command | Description |
+|---|---|
+| `./gradlew runCli` | Interactive mode (กรอกหลอดเอง) |
+| `--demo` | แก้ด่านตัวอย่าง |
+| `--file puzzle.json` | อ่านด่านจาก JSON แล้วแก้ |
+| `--image screenshot.png` | อ่านภาพหน้าจอเกม (Image Recognition) แล้วแก้ |
+| `--generate N [easy\|medium\|hard]` | สร้างด่าน N สี (verify ว่าแก้ได้) |
+| `--batch N C` | สร้าง C ด่าน ด่านละ N สี |
+| `--help` | แสดงวิธีใช้ |
+
+ตัวอย่าง: `./gradlew runCli --args="--file puzzle.json" --console=plain`
 
 ---
 
@@ -298,11 +331,12 @@ Step 12: Pour Tube 3 → Tube 5    (Green)
 
 | Constraint | Value |
 |---|---|
-| Max tubes | 20 (ด่านปกติ 12–14) |
+| Max tubes | solver ไม่จำกัดตายตัว (ด่านปกติ 12–14); GUI Board Editor ตั้งได้ 2–28 หลอด |
 | Tube capacity | 4 (fixed) |
-| Colors per block | integer 0 to N-3 |
-| Max search states | ~10^6 (ถ้าเกินจะ timeout/out-of-memory) |
-| Empty tubes at start | ≥ 2 (ไม่งั้นส่วนใหญ่แก้ไม่ได้) |
+| Color ID | จำนวนเต็มบวก 1, 2, 3, … (GUI มีสี/ชื่อให้ 24 สี) |
+| Max search states | 2,000,000 (`MAX_STATES`; เกินแล้วหยุดและรายงานว่าไม่พบคำตอบ) |
+| Empty tubes at start | ≥ 2 (ไม่งั้นส่วนใหญ่แก้ไม่ได้ — เป็น warning ใน GUI) |
+| Puzzle Generator | โหมด Play Game ให้เลือก 3–10 สี (ตรวจว่าแก้ได้ด้วย A*; 10 สี ≈ 1 วินาที) |
 
 ---
 
@@ -310,10 +344,12 @@ Step 12: Pour Tube 3 → Tube 5    (Green)
 
 | Case | Behavior |
 |---|---|
-| Invalid input (สีไม่ครบ, หลอดเกิน 4) | แสดง error message ชัดเจน |
-| Unsolvable puzzle | แสดง "No solution found" พร้อมจำนวน states ที่สำรวจ |
-| Timeout (เกิน N วินาที) | หยุดค้นหา แสดง partial result |
-| Out of memory | Catch `OutOfMemoryError`, แนะนำลดขนาดปัญหา |
+| Invalid input file (JSON ผิด format / ไม่มี `tubes`) | CLI แสดง `❌ Error parsing file: …` (มี unit test) |
+| Invalid board ใน GUI (สีไม่ครบ 4 บล็อก) | แสดงรายการปัญหาที่แบนเนอร์, ปุ่ม Confirm ถูกปิดจนกว่าจะแก้ |
+| Unsolvable puzzle / ชนเพดาน states | แสดง "No solution found" พร้อมจำนวน states ที่สำรวจ |
+| อ่านภาพไม่ได้ / ไม่พบหลอด | `RecognitionResult` มี `errors` และ `boardState = null` → GUI แจ้งที่หน้า Upload |
+| Timeout ตามเวลา | ⬜ ยังไม่ทำ — ใช้เพดานจำนวน state แทน; GUI ให้ปุ่ม Cancel ระหว่างค้นหา |
+| Out of memory | แอป GUI รันด้วย `-Xmx2g`; ถ้า solver ล้ม (Task failed) จะแสดงข้อความ error แทนที่จะค้าง |
 
 ---
 
@@ -325,73 +361,75 @@ Step 12: Pour Tube 3 → Tube 5    (Green)
 
 | Property | Requirement |
 |---|---|
-| **Format** | PNG, JPG, JPEG, BMP |
-| **Resolution** | ≥ 500×500 px (recommended ≥ 720p) |
+| **Format** | PNG, JPG, JPEG (ตัวเลือกไฟล์ใน GUI); CLI `--image` ส่งให้ OpenCV `imread` โดยตรง |
+| **Resolution** | ≥ 500×500 px (recommended ≥ 720p) — ภาพตัวอย่าง `test_image.png` คือ 981×1024 |
 | **Content** | หน้าจอเกม Water Sort Puzzle ที่เห็นหลอดทั้งหมดชัดเจน |
 | **Orientation** | Portrait หรือ Landscape |
 | **Restrictions** | ไม่บังหลอด, ไม่มี popup/overlay ทับ |
 
-### 9.2 Tube Detection Algorithm
+### 9.2 Tube Detection Algorithm (`TubeDetector`)
 
 ```
 function detectTubes(image):
     gray ← convertToGrayscale(image)
     blurred ← gaussianBlur(gray, kernelSize=5)
     edges ← cannyEdgeDetect(blurred, threshold1=50, threshold2=150)
-    contours ← findContours(edges)
+    contours ← findContours(edges, RETR_EXTERNAL)
 
-    tubeContours ← []
+    tubeRects ← []
     for each contour in contours:
         rect ← boundingRect(contour)
         aspectRatio ← rect.height / rect.width
 
-        if 2.0 ≤ aspectRatio ≤ 5.0:           // หลอดแคบยาว
-            if minArea ≤ rect.area ≤ maxArea:   // ขนาดอยู่ในช่วงที่คาดหวัง
-                tubeContours.append(rect)
+        if 2.0 ≤ aspectRatio ≤ 6.0                       // หลอดแคบยาว
+           and rect.height > 10% ของความสูงภาพ and rect.width > 10:
+            tubeRects.append(rect)
 
-    // Remove duplicates (overlapping contours)
-    tubeContours ← nonMaxSuppression(tubeContours, overlapThreshold=0.5)
+    // ตัดกรอบซ้อนกัน: overlap / พื้นที่ของกรอบที่เล็กกว่า > 0.3 → ถือว่าเป็นหลอดเดียวกัน
+    tubeRects ← removeOverlapping(tubeRects, threshold=0.3)
 
-    // Sort: left-to-right, then top-to-bottom (row-major order)
-    tubeContours ← sortByPosition(tubeContours)
-
-    return tubeContours
+    // จัดลำดับแบบ row-major: y ต่างกันไม่เกินครึ่งความสูงหลอด = แถวเดียวกัน แล้วเรียงซ้าย → ขวา
+    return sortRowMajor(tubeRects)
 ```
 
-### 9.3 Color Extraction Algorithm
+> `bounds` ที่ได้**รวมฝาหลอดด้านบนมาด้วย** — ขั้นตอนถัดไปจึงต้องตัดส่วนฝาออกก่อนแบ่ง slot
+
+### 9.3 Color Extraction Algorithm (`ColorExtractor` + `ImageRecognizer`)
 
 ```
-function extractColors(tubeImage):
-    height ← tubeImage.height
-    slotHeight ← height / 4    // 4 slots per tube
-    margin ← 0.2               // 20% margin to avoid tube edges
+function extractColors(tubeImage):                     // ต่อ 1 หลอด
+    liquidTop    ← height * 0.13                       // ตัดฝาหลอด (CAP_FRACTION)
+    liquidBottom ← height * (1 - 0.015)                // ตัดขอบโค้งล่าง
+    slotHeight   ← (liquidBottom - liquidTop) / 4
 
-    colors ← []
-    for slot from 0 to 3:      // top to bottom
-        y1 ← slot * slotHeight + (slotHeight * margin)
-        y2 ← (slot + 1) * slotHeight - (slotHeight * margin)
-        x1 ← tubeImage.width * margin
-        x2 ← tubeImage.width * (1 - margin)
+    for slot from 0 to 3:                              // บน → ล่าง
+        region ← กึ่งกลางของ slot (เว้นขอบ 40% แนวตั้งและแนวนอน)
+        record mean(LAB), mean(HSV), mean(RGB) ของ region
+    return records กลับลำดับเป็น ก้นหลอด → บนสุด
 
-        region ← crop(tubeImage, x1, y1, x2, y2)
-        hsvRegion ← convertToHSV(region)
-        dominantHSV ← kMeansCluster(hsvRegion, k=1)
-
-        if isBgColor(dominantHSV):   // dark / transparent
-            continue                  // slot is empty
-        else:
-            colorId ← mapToNearestColor(dominantHSV, palette)
-            colors.append(colorId)
-
-    return colors    // bottom-to-top order (reversed for stack)
+function recognize(image):
+    slots ← extractColors(ทุกหลอด)
+    colored ← slots ที่ isColored(slot)                 // L > 55 หรือ chroma > 15 (ไม่ใช่พื้นหลังมืดไร้สี)
+    k ← |colored| / 4                                   // ทุกสีมี 4 บล็อก
+    clusters ← constrainedAgglomerativeClustering(colored, k, maxSize=4, space=LAB, linkage=average)
+    for each cluster:  name ← ColorNamer.nearest(mean RGB), rgb ← mean RGB
+    return BoardState จาก cluster id ของแต่ละบล็อก (id เริ่มที่ 1)
 ```
 
-### 9.4 Color Palette (Predefined HSV Ranges)
+> ถ้า `|colored|` หาร 4 ไม่ลงตัว จะ **ไม่เดาเติมบล็อก** — ใส่ warning แล้วให้ validation รายงานสีที่จำนวนไม่ครบ เพื่อให้ผู้ใช้แก้ใน UI
+
+### 9.4 Color Palette & Naming
+
+**ColorNamer** (ใช้จริงใน pipeline) — ตั้งชื่อ cluster จากสีอ้างอิงที่ใกล้ที่สุด (redmean distance) ชื่อที่ซ้ำเติมเลขท้าย (เช่น "Dark Green 2"):
+
+Red · Orange · Yellow · Olive · Light Green · Dark Green · Light Blue · Blue · Purple · Pink · Brown · Gray · White
+
+**ColorPalette** (HSV lookup; เก็บไว้เป็นตัวอ้างอิง/ทดสอบ — pipeline หลักไม่เรียกใช้):
 
 | Color Name | Hue Range | Saturation | Value | Notes |
 |---|---|---|---|---|
 | Red | 0–10, 170–180 | > 100 | > 80 | Wraps around in HSV |
-| Orange | 10–25 | > 100 | > 80 | |
+| Orange | 10–25 | > 100 | > 120 | สว่างพอ (ถ้ามืดกว่านี้ → Brown) |
 | Yellow | 25–35 | > 100 | > 80 | |
 | Olive/YellowGreen | 35–50 | > 60 | > 60 | |
 | Green | 50–80 | > 80 | > 60 | |
@@ -399,35 +437,27 @@ function extractColors(tubeImage):
 | Blue | 100–130 | > 80 | > 60 | |
 | Purple | 130–155 | > 60 | > 50 | |
 | Pink | 155–170 | > 40 | > 80 | |
-| Brown | 10–30 | > 60 | 40–120 | Low value distinguishes from orange |
-| Gray | any | < 40 | 80–180 | Low saturation |
-| *(Background)* | any | < 30 | < 60 | Dark = empty slot |
-
-> **Note**: ค่าเหล่านี้เป็นค่าเริ่มต้น ต้อง tune ตามจริงเมื่อทดสอบกับภาพตัวอย่าง
-> อีกวิธีคือ auto-detect palette: รวม dominant colors จากทุก slot → K-Means cluster เป็น N สี
+| Brown | 10–30 | > 60 | 40–120 | Value ต่ำแยกจาก Orange |
+| Gray | any | < 40 | ≥ 80 | Low saturation |
+| *(Background)* | any | < 50 | < 60 | Dark = empty slot |
 
 ### 9.5 Validation Rules
 
 ```
 function validateRecognition(result):
-    colorCounts ← countOccurrences(result.allColors)
-
     errors ← []
-    for each (color, count) in colorCounts:
-        if count ≠ TUBE_CAPACITY:     // ทุกสีต้องมี = 4
-            errors.append("Color " + color + " has " + count + " blocks (expected 4)")
+    for each (color, count) in countOccurrences(result.allColors):
+        if count ≠ TUBE_CAPACITY:                 // ทุกสีต้องมี = 4
+            errors.append("Color " + color + " has " + count + " blocks (expected 4).")
 
-    emptyTubeCount ← count tubes where tube.isEmpty()
     if emptyTubeCount < 2:
-        errors.append("Only " + emptyTubeCount + " empty tubes (expected ≥ 2)")
+        errors.append("Only " + emptyTubeCount + " empty tubes detected (expected >= 2).")
 
-    totalColorBlocks ← sum(colorCounts.values)
-    expectedBlocks ← (result.tubeCount - emptyTubeCount) * TUBE_CAPACITY
-    if totalColorBlocks ≠ expectedBlocks:
-        errors.append("Block count mismatch: " + totalColorBlocks + " vs " + expectedBlocks)
-
-    return errors
+    return errors     // ว่าง → isValid = true, confidence = 1.0; ไม่ว่าง → confidence = 0.5
 ```
+
+ใน GUI ผู้ใช้แก้บอร์ดได้แล้ว validation รันซ้ำแบบ live (`BoardEditor.validate()`): สีที่จำนวนไม่ครบ 4 เป็น **error** (บล็อกปุ่ม Confirm),
+หลอดว่าง < 2 เป็นแค่ **warning**
 
 ### 9.6 Recognition Result Data Structures
 
@@ -436,12 +466,13 @@ function validateRecognition(result):
  * ผลลัพธ์จากการ recognize ภาพหน้าจอเกม
  */
 class RecognitionResult {
-    BoardState boardState;             // สถานะที่ extract ได้ (null ถ้า invalid)
+    BoardState boardState;             // สถานะที่ extract ได้ (null ถ้าอ่านไม่ได้เลย)
     List<TubeRegion> tubeRegions;      // ตำแหน่ง + สีของแต่ละหลอด
-    Map<Integer, String> colorMap;     // color ID → ชื่อสี (เช่น 1 → "Red")
-    double confidence;                 // ความมั่นใจรวม (0.0–1.0)
-    List<String> warnings;            // เตือนเรื่อง slot ที่ไม่ชัด
-    List<String> errors;              // ข้อผิดพลาด (ถ้ามี)
+    Map<Integer, String> colorMap;     // color ID → ชื่อสี (เช่น 1 → "Yellow")
+    Map<Integer, int[]> colorRgb;      // color ID → {r,g,b} จริงที่วัดได้ (UI ใช้วาดสีตรงกับเกม)
+    double confidence;                 // 1.0 = ผ่าน validation, 0.5 = ไม่ผ่าน
+    List<String> warnings;            // เตือน (เช่น จำนวนบล็อกสีหาร 4 ไม่ลงตัว)
+    List<String> errors;              // ข้อผิดพลาดจาก validation
     boolean isValid;                   // validation ผ่านหรือไม่
 }
 
@@ -449,19 +480,41 @@ class TubeRegion {
     int tubeIndex;                     // ลำดับหลอด (0-based)
     Rectangle bounds;                  // พิกัด (x, y, w, h) ในภาพต้นฉบับ
     int[] extractedColors;             // สีที่ extract ได้ (bottom → top)
-    double[] slotConfidences;          // ความมั่นใจของแต่ละ slot
+    double[] slotConfidences;          // ปัจจุบันเป็นค่าคงที่ 1.0 (ยังไม่คำนวณจริงต่อ slot)
 }
 ```
 
-### 9.7 User Confirmation Flow
+### 9.7 User Confirmation Flow (GUI)
 
 ```
-1. ระบบแสดงภาพต้นฉบับ + วาด bounding box รอบหลอดที่ตรวจพบ
-2. ด้านข้างแสดง BoardState ที่ extract ได้ (หลอดเป็นกราฟิก)
-3. ถ้ามี warnings → highlight slot ที่ไม่มั่นใจ (เช่น ขอบสีแดง)
+1. แสดงภาพต้นฉบับ + กรอบ/หมายเลขรอบหลอดที่ตรวจพบ (Recognition Preview) พร้อม chip ความมั่นใจ
+2. ด้านข้างแสดง BoardState ที่ extract ได้เป็นหลอดกราฟิก ด้วย "สีจริงที่วัดได้จากภาพ"
+   — hover หลอด/กรอบเพื่อดูความสัมพันธ์สองฝั่ง
+3. หลอดที่มีสีซึ่งจำนวนไม่ครบ 4 → กรอบสีส้ม (น่าจะอ่านผิด); ถ้าบอร์ดไม่ valid จะเข้า Edit mode อัตโนมัติ
 4. ผู้ใช้สามารถ:
-   a. ✅ Confirm — ยืนยันว่าถูกต้อง → ไปขั้น Solve
-   b. 🎨 Edit — คลิกที่ slot เพื่อเปลี่ยนสี → แก้ไขแล้ว Confirm
-   c. 🔄 Re-upload — อัปโหลดภาพใหม่
+   a. ✅ Confirm — ยืนยันว่าถูกต้อง → ไปขั้น Solve (กดได้เมื่อ validation ผ่าน)
+   b. ✎ Edit — คลิกช่องเพื่อลงสี / คลิกขวาเพื่อลบ / เพิ่ม-ลดหลอด → แก้แล้ว Confirm
+   c. 🔄 อัปโหลดใหม่ — ปุ่ม Change Mode → Image Recognizer
 ```
 
+---
+
+## 10. Desktop GUI Modes
+
+หน้าแรกของแอป (`./gradlew run`) ให้เลือกโหมด:
+
+| โหมด | Flow |
+|---|---|
+| **1. Image Recognizer** | Upload → Recognize → Preview → (Edit) → Confirm → Solve → Playback (Prev/Next/Auto-Play) |
+| **2. Play Game** | Setup (3–10 สี, Easy/Medium/Hard) → Generate → ผู้เล่นเท → (Undo / Restart / Hint / Solve for me) |
+
+### 10.1 กติกาโหมด Play Game (`GameSession`)
+
+- ด่านสร้างโดย `PuzzleGenerator` (สุ่มแล้ว verify ด้วย A* ว่าแก้ได้) — Easy มีหลอดว่าง 3 หลอด, Medium/Hard มี 2
+- ผู้เล่นคลิกหลอดต้นทาง (ยกขึ้น) แล้วคลิกหลอดปลายทาง — เทได้ตามกติกา 2.1 และเทแบบ multi-pour ตาม 2.2
+  (ไม่ใช้ pruning ของ solver)
+- **Moves** = จำนวนการเทที่ทำ; **Best possible** = จำนวน step ที่น้อยที่สุดจาก A* ตอนสร้างด่าน (ถ้า Moves ≤ Best possible = Perfect)
+- **Undo** ย้อนทีละครั้ง, **Restart** กลับสถานะเริ่มต้น (Best possible เท่าเดิม)
+- **Hint** — A* คำนวณจากตำแหน่งปัจจุบัน แล้วไฮไลท์คู่หลอดของ move แรก; ถ้าไม่มีทางแก้จากตำแหน่งนั้น จะแจ้งให้ Undo
+- **Solve for me** — A* แก้จากตำแหน่งปัจจุบัน แล้วเล่นเป็น playback; **Back to Game** กลับไปเล่นต่อจากตำแหน่งเดิม
+- ชนะเมื่อทุกหลอดว่างหรือเต็มด้วยสีเดียว (`BoardState.isGoal()`)
