@@ -1,0 +1,34 @@
+/* Dark theme (default) */
+.root {
+    -bg0: #0d1017;
+    -bg1: #151a24;
+    -bg2: #1c2330;
+    -bg3: #273044;
+    -border: #2a3448;
+    -border-strong: #3a4763;
+    -text: #e8ecf5;
+    -muted: #8f9ab1;
+    -accent: #4f8cff;
+    -accent2: #8b5cf6;
+    -ok: #34d399;
+    -warn: #fbbf24;
+    -danger: #f87171;
+
+    -fx-base: #1c2330;
+    -fx-background: #0d1017;
+    -fx-control-inner-background: #151a24;
+    -fx-accent: #4f8cff;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.tube-outline { -fx-stroke: rgba(255,255,255,0.55); }
+.tube-glass   { -fx-fill: rgba(255,255,255,0.055); }
+.tube-shine   { -fx-fill: rgba(255,255,255,0.20); }
+.slot-outline { -fx-stroke: rgba(255,255,255,0.20); }
+.card         { -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 18, 0.1, 0, 4); }
+.busy-overlay { -fx-background-color: rgba(8,10,15,0.72); }
+.upload-zone  { -fx-background-color: rgba(79,140,255,0.05); }
+.upload-zone:hover, .upload-zone-active { -fx-background-color: rgba(79,140,255,0.13); }
+.swatch-eraser-dot { -fx-fill: #222b3b; -fx-stroke: #4a5876; }
+.swatch-eraser-x { -fx-text-fill: #9aa7c2; }

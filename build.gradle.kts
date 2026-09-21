@@ -2,10 +2,16 @@ plugins {
     id("java")
     id("application")
     id("jacoco")
+    id("org.openjfx.javafxplugin") version "0.1.0"
+}
+
+javafx {
+    version = "21.0.5"
+    modules = listOf("javafx.controls", "javafx.graphics")
 }
 
 jacoco {
-    toolVersion = "0.8.12"
+    toolVersion = "0.8.14"
 }
 
 group = "watersort"
@@ -44,5 +50,15 @@ tasks.jacocoTestReport {
 }
 
 application {
+    // `./gradlew run` เปิด Desktop GUI (JavaFX); CLI ยังใช้ได้ผ่าน `./gradlew runCli`
+    mainClass.set("watersort.ui.WaterSortApp")
+    applicationDefaultJvmArgs = listOf("--enable-native-access=javafx.graphics,ALL-UNNAMED", "-Xmx2g")
+}
+
+tasks.register<JavaExec>("runCli") {
+    group = "application"
+    description = "Runs the command-line interface (watersort.Main). Pass arguments with --args=\"--demo\"."
+    classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("watersort.Main")
+    standardInput = System.`in`
 }

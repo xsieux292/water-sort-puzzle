@@ -1,0 +1,175 @@
+/* Shared structure — colors come from dark.css / light.css */
+
+.root {
+    -fx-font-family: "System";
+    -fx-font-size: 13px;
+}
+
+.app-root { -fx-background-color: -bg0; }
+.label { -fx-text-fill: -text; }
+.muted { -fx-text-fill: -muted; }
+.error-text { -fx-text-fill: -danger; }
+
+/* ── Header ─────────────────────────────────────────── */
+.header { -fx-background-color: -bg1; -fx-border-color: transparent transparent -border transparent; }
+.app-title { -fx-font-size: 18px; -fx-font-weight: 800; }
+.hero-title { -fx-font-size: 30px; -fx-font-weight: 800; }
+.step-pill {
+    -fx-text-fill: -muted; -fx-font-weight: 600; -fx-padding: 5 14;
+    -fx-background-radius: 20; -fx-background-color: transparent;
+}
+.step-pill.step-done   { -fx-text-fill: -ok; }
+.step-pill.step-active { -fx-text-fill: white; -fx-background-color: linear-gradient(to right, -accent, -accent2); }
+
+/* ── Buttons ────────────────────────────────────────── */
+.button, .toggle-button, .menu-button {
+    -fx-background-color: -bg3;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+    -fx-text-fill: -text;
+    -fx-font-weight: 700;
+    -fx-padding: 9 18;
+    -fx-cursor: hand;
+}
+.button .label, .toggle-button .label, .menu-button .label { -fx-text-fill: -text; }
+.button:hover, .toggle-button:hover, .menu-button:hover { -fx-background-color: derive(-bg3, 14%); }
+.button:pressed, .toggle-button:pressed, .menu-button:pressed { -fx-background-color: derive(-bg3, -8%); }
+.button:disabled, .toggle-button:disabled { -fx-opacity: 0.38; -fx-cursor: default; }
+.toggle-button:selected { -fx-background-color: derive(-bg3, 22%); }
+.toggle-button.secondary:selected { -fx-background-color: -accent; }
+.toggle-button.secondary:selected .label { -fx-text-fill: white; }
+
+.button.primary, .toggle-button.primary {
+    -fx-background-color: linear-gradient(to right, -accent, -accent2);
+}
+.button.primary .label, .toggle-button.primary .label { -fx-text-fill: white; }
+.button.primary:hover, .toggle-button.primary:hover {
+    -fx-background-color: linear-gradient(to right, derive(-accent, 14%), derive(-accent2, 14%));
+}
+.toggle-button.primary:selected {
+    -fx-background-color: linear-gradient(to right, -warn, derive(-warn, -18%));
+}
+.toggle-button.primary:selected .label { -fx-text-fill: #201800; }
+
+.button.success { -fx-background-color: -ok; }
+.button.success .label { -fx-text-fill: #05271b; }
+.button.success:hover { -fx-background-color: derive(-ok, 12%); }
+.button.big { -fx-font-size: 15px; -fx-padding: 12 44; }
+.icon-button { -fx-padding: 8 12; -fx-font-size: 15px; }
+.menu-button .arrow-button { -fx-padding: 0 0 0 6; }
+.menu-button .arrow { -fx-background-color: -text; }
+
+/* ── Cards ──────────────────────────────────────────── */
+.card {
+    -fx-background-color: -bg1;
+    -fx-background-radius: 16;
+    -fx-border-color: -border;
+    -fx-border-radius: 16;
+}
+.card-title { -fx-font-size: 14px; -fx-font-weight: 800; }
+.board-card { -fx-background-color: -bg1; }
+.chip { -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-weight: 700; -fx-font-size: 11px; }
+.chip-ok   { -fx-background-color: rgba(52,211,153,0.18); }
+.chip-ok   .label, .chip-ok   { -fx-text-fill: -ok; }
+.chip-warn { -fx-background-color: rgba(251,191,36,0.20); }
+.chip-warn { -fx-text-fill: -warn; }
+.chip-bad  { -fx-background-color: rgba(248,113,113,0.20); }
+.chip-bad  { -fx-text-fill: -danger; }
+
+/* ── Banner ─────────────────────────────────────────── */
+.banner {
+    -fx-padding: 11 16; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-width: 1;
+    -fx-font-weight: 600;
+}
+.banner-info  { -fx-background-color: rgba(79,140,255,0.13);  -fx-border-color: rgba(79,140,255,0.45); }
+.banner-ok    { -fx-background-color: rgba(52,211,153,0.12);  -fx-border-color: rgba(52,211,153,0.45); }
+.banner-warn  { -fx-background-color: rgba(251,191,36,0.13);  -fx-border-color: rgba(251,191,36,0.50); }
+.banner-error { -fx-background-color: rgba(248,113,113,0.13); -fx-border-color: rgba(248,113,113,0.50); }
+
+/* ── Upload zone ────────────────────────────────────── */
+.upload-zone {
+    -fx-background-radius: 20;
+    -fx-border-color: -border-strong;
+    -fx-border-width: 2;
+    -fx-border-radius: 20;
+    -fx-border-style: segments(10, 8);
+    -fx-cursor: hand;
+    -fx-padding: 20;
+}
+.upload-zone:hover, .upload-zone-active { -fx-border-color: -accent; }
+.upload-zone-active { -fx-effect: dropshadow(gaussian, rgba(79,140,255,0.55), 22, 0.2, 0, 0); }
+.upload-title { -fx-font-size: 20px; -fx-font-weight: 800; }
+.upload-file { -fx-font-weight: 700; }
+.upload-icon-disc { -fx-fill: rgba(79,140,255,0.16); }
+.upload-icon-arrow { -fx-fill: -accent; }
+.upload-thumb { -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 12, 0.1, 0, 3); }
+
+/* ── Tubes ──────────────────────────────────────────── */
+.tube-outline { -fx-fill: transparent; -fx-stroke-width: 2.5; -fx-stroke-line-cap: round; -fx-stroke-line-join: round; }
+.tube-outline.tube-highlight { -fx-stroke: -accent; -fx-stroke-width: 3.5; }
+.slot-outline { -fx-fill: transparent; -fx-stroke-width: 1.5; -fx-stroke-dash-array: 4 4; }
+.tube-label { -fx-text-fill: -muted; -fx-font-weight: 700; -fx-font-size: 13px; }
+.tube-label-done { -fx-text-fill: -ok; }
+
+/* ── Recognition preview ────────────────────────────── */
+.preview-canvas { -fx-background-color: -bg2; -fx-background-radius: 10; }
+.region-box { -fx-fill: rgba(52,211,153,0.10); -fx-stroke: -ok; -fx-stroke-width: 2; }
+.region-box:hover, .region-box.region-highlight { -fx-fill: rgba(79,140,255,0.32); -fx-stroke: -accent; -fx-stroke-width: 3; }
+.region-box.region-suspect { -fx-fill: rgba(251,191,36,0.18); -fx-stroke: -warn; }
+.region-badge { -fx-background-color: -ok; -fx-background-radius: 9; -fx-padding: 0 6; }
+.region-badge-text { -fx-text-fill: #04241a; -fx-font-size: 11px; -fx-font-weight: 800; }
+.region-badge-highlight { -fx-background-color: -accent; }
+.region-badge-highlight .region-badge-text { -fx-text-fill: white; }
+
+/* ── Color picker ───────────────────────────────────── */
+.swatch-ring { -fx-fill: transparent; -fx-stroke: transparent; -fx-stroke-width: 3; }
+.swatch-ring-selected { -fx-stroke: -accent; }
+.swatch-dot { -fx-stroke: rgba(0,0,0,0.30); -fx-stroke-width: 1; }
+.swatch-eraser-dot { -fx-stroke-width: 1.5; -fx-stroke-dash-array: 3 3; }
+.swatch-eraser-x { -fx-font-size: 15px; -fx-font-weight: 800; }
+.swatch { -fx-cursor: hand; }
+.swatch-count {
+    -fx-font-size: 9px; -fx-font-weight: 800; -fx-padding: 0 4; -fx-background-radius: 7;
+    -fx-background-color: rgba(0,0,0,0.65); -fx-text-fill: white;
+}
+.swatch-count-ok { -fx-background-color: rgba(18,150,100,0.95); }
+.swatch-count-bad { -fx-background-color: rgba(214,60,60,0.95); }
+
+/* ── Solution panel ─────────────────────────────────── */
+.solution-panel { -fx-border-color: -border; }
+.solution-panel.solution-done { -fx-border-color: -ok; -fx-border-width: 2; }
+.step-title { -fx-font-size: 16px; -fx-font-weight: 800; }
+.step-move { -fx-font-size: 15px; -fx-font-weight: 600; }
+.step-chip { -fx-stroke: rgba(0,0,0,0.35); }
+.step-percent { -fx-font-weight: 700; -fx-text-fill: -muted; }
+.solution-progress { -fx-pref-height: 14; }
+.solution-progress > .track {
+    -fx-background-color: -bg3; -fx-background-radius: 8; -fx-background-insets: 0; -fx-pref-height: 14;
+}
+.solution-progress > .bar {
+    -fx-background-color: linear-gradient(to right, -accent, -accent2);
+    -fx-background-radius: 8; -fx-background-insets: 0; -fx-padding: 7;
+}
+.solution-done .solution-progress > .bar { -fx-background-color: linear-gradient(to right, -ok, derive(-ok, -15%)); }
+
+/* ── Control bar / slider ───────────────────────────── */
+.control-bar { -fx-background-color: -bg1; -fx-border-color: -border transparent transparent transparent; }
+.slider .track { -fx-background-color: -bg3; -fx-background-radius: 4; -fx-background-insets: 0; -fx-pref-height: 4; }
+.slider .thumb { -fx-background-color: -accent; -fx-background-insets: 0; -fx-background-radius: 10; -fx-pref-width: 16; -fx-pref-height: 16; }
+.slider:hover .thumb { -fx-background-color: derive(-accent, 15%); }
+
+/* ── Busy overlay ───────────────────────────────────── */
+.busy-box { -fx-background-color: -bg1; -fx-background-radius: 16; -fx-padding: 28 40; -fx-border-color: -border; -fx-border-radius: 16; }
+.busy-label { -fx-font-size: 15px; -fx-font-weight: 700; }
+.progress-indicator > .determinate-indicator > .indicator { -fx-background-color: -bg3; }
+
+/* ── Tooltips / scrollbars ──────────────────────────── */
+.tooltip { -fx-background-color: -bg3; -fx-text-fill: -text; -fx-background-radius: 8; -fx-font-size: 12px; }
+
+/* ── Mode select / game setup / hint ────────────────── */
+.mode-card { -fx-cursor: hand; }
+.mode-card:hover { -fx-border-color: -accent; -fx-effect: dropshadow(gaussian, rgba(79,140,255,0.45), 22, 0.15, 0, 0); }
+.mode-title { -fx-font-size: 22px; -fx-font-weight: 800; }
+.mode-icon { -fx-fill: transparent; -fx-stroke: -accent; -fx-stroke-width: 1.6; -fx-stroke-line-cap: round; -fx-stroke-line-join: round; }
+.setup-pane .slider .axis { -fx-tick-label-fill: -muted; -fx-tick-mark-stroke: -border-strong; }
+.tube-outline.tube-hint { -fx-stroke: -warn; -fx-stroke-width: 4; -fx-effect: dropshadow(gaussian, rgba(251,191,36,0.9), 14, 0.5, 0, 0); }
