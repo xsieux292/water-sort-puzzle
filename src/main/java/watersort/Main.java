@@ -43,6 +43,18 @@ public class Main {
                         System.err.println("❌ Missing file path after --file");
                     }
                 }
+                case "--image" -> {
+                    if (args.length > 1) {
+                        watersort.vision.ImageRecognizer recognizer = new watersort.vision.ImageRecognizer();
+                        watersort.vision.RecognitionResult res = recognizer.recognize(args[1]);
+                        System.out.println(res);
+                        if (res.getBoardState() != null) {
+                            handleSolve(res.getBoardState(), "Image: " + args[1]);
+                        }
+                    } else {
+                        System.err.println("❌ Missing image path after --image");
+                    }
+                }
                 case "--help" -> printHelp();
                 default -> handleSolve(parseInput(), "User puzzle");
             }
