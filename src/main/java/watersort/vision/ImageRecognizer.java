@@ -74,17 +74,14 @@ public class ImageRecognizer {
             // Let's just find how many blocks have L > 50.
             List<double[]> coloredScalars = new ArrayList<>();
             for (double[] s : flatScalars) {
-                // Background L is usually around 30-45. Colored blocks are > 55 even for dark colors.
-                if (s[0] > 55) {
+                if (isColored(s)) {
                     coloredScalars.add(s);
                 }
             }
             
-            // Ensure it's a multiple of 4 by adjusting the threshold dynamically if needed
-            while (coloredScalars.size() % 4 != 0 && coloredScalars.size() < flatScalars.size()) {
-                // Add the next brightest block until we hit a multiple of 4
-                coloredScalars.add(flatScalars.get(coloredScalars.size()));
-            }
+            // ไม่ "เดา" เพิ่มบล็อกให้ครบ 4 — ถ้าจำนวนไม่ลงตัว จะแจ้ง warning/validation error และให้ผู้ใช้แก้ใน UI
+            Set<double[]> coloredSet = Collections.newSetFromMap(new IdentityHashMap<>());
+            coloredSet.addAll(coloredScalars);
 
             // 3. Constrained Agglomerative Clustering (ensures max 4 per cluster)
             int k = coloredScalars.size() / 4;
@@ -97,9 +94,6 @@ public class ImageRecognizer {
                 return new RecognitionResult(null, tubeRegions, new HashMap<>(), 0.0, warnings, errors, false);
             }
 
-            // We need a way to know if a scalar from allTubeScalars is in coloredScalars.
-            // Let's just use a threshold based on the lowest L in coloredScalars.
-            double thresholdL = coloredScalars.get(coloredScalars.size() - 1)[0] - 1.0; // anything > this is colored
 
             // Each colored block is initially its own cluster
             List<List<Integer>> clusters = new ArrayList<>();
@@ -154,7 +148,7 @@ public class ImageRecognizer {
                 List<Integer> mapped = new ArrayList<>();
                 
                 for (double[] s : scalars) {
-                    if (s[0] <= thresholdL) {
+                    if (!coloredSet.contains(s)) {
                         continue; // Empty slot
                     }
                     
@@ -183,10 +177,30 @@ public class ImageRecognizer {
                 tubeRegions.add(new TubeRegion(i, boundsList.get(i), arr, conf));
             }
 
-            // Create Color Map
-            Map<Integer, String> colorMap = new HashMap<>();
-            for (int c = 0; c < k; c++) {
-                colorMap.put(c + 1, "Color_" + (c+1));
+            // Create Color Map — ตั้งชื่อสีที่อ่านง่ายจากค่า RGB เฉลี่ยของแต่ละ cluster
+            double[][] clusterRgb = new double[clusters.size()][3];
+            for (int c = 0; c < clusters.size(); c++) {
+                List<Integer> members = clusters.get(c);
+                double r = 0, g = 0, b = 0;
+                for (int idx : members) {
+                    double[] s = coloredScalars.get(idx);
+                    r += s[6];
+                    g += s[7];
+                    b += s[8];
+                }
+                clusterRgb[c][0] = r / members.size();
+                clusterRgb[c][1] = g / members.size();
+                clusterRgb[c][2] = b / members.size();
+            }
+            Map<Integer, String> colorMap = ColorNamer.nameClusters(clusterRgb);
+
+            // color ID → {r,g,b} จริง เพื่อให้ UI วาดบอร์ดด้วยสีที่ตรงกับเกม
+            Map<Integer, int[]> colorRgb = new HashMap<>();
+            for (int c = 0; c < clusters.size(); c++) {
+                colorRgb.put(c + 1, new int[]{
+                        (int) Math.round(clusterRgb[c][0]),
+                        (int) Math.round(clusterRgb[c][1]),
+                        (int) Math.round(clusterRgb[c][2])});
             }
 
             // 4. Validation
@@ -220,7 +234,7 @@ public class ImageRecognizer {
             }
 
             return new RecognitionResult(boardState, tubeRegions, colorMap,
-                    isValid ? 1.0 : 0.5, warnings, errors, isValid);
+                    isValid ? 1.0 : 0.5, warnings, errors, isValid).withColorRgb(colorRgb);
 
         } catch (Exception e) {
             errors.add("Exception during recognition: " + e.getMessage());
@@ -230,6 +244,12 @@ public class ImageRecognizer {
         }
     }
     
+    /** L ของพื้นหลัง/หลอดว่างมักต่ำ (~25-45) และไม่มีสี (a,b ≈ 128) ส่วนบล็อกสีเข้มจะยังมี chroma สูง */
+    static boolean isColored(double[] lab) {
+        double chroma = Math.hypot(lab[1] - 128, lab[2] - 128);
+        return lab[0] > 55 || chroma > 15;
+    }
+
     private double clusterDistance(List<Integer> c1, List<Integer> c2, List<double[]> allScalars) {
         // Average linkage
         double sumDist = 0;

@@ -17,6 +17,9 @@ public class RecognitionResult {
     private final List<String> errors;
     private final boolean isValid;
 
+    /** color ID → ค่าสีจริง {r, g, b} ที่วัดได้จากภาพ (ว่างถ้ายังไม่รู้จัก) — ใช้ให้ UI แสดงสีตรงกับเกม */
+    private Map<Integer, int[]> colorRgb = Map.of();
+
     public RecognitionResult(BoardState boardState, List<TubeRegion> tubeRegions, Map<Integer, String> colorMap,
                              double confidence, List<String> warnings, List<String> errors, boolean isValid) {
         this.boardState = boardState;
@@ -26,6 +29,17 @@ public class RecognitionResult {
         this.warnings = warnings;
         this.errors = errors;
         this.isValid = isValid;
+    }
+
+    /** ผูกค่าสีจริง (id → {r,g,b}) แล้วคืน this เพื่อเรียกต่อแบบ fluent */
+    public RecognitionResult withColorRgb(Map<Integer, int[]> colorRgb) {
+        this.colorRgb = colorRgb;
+        return this;
+    }
+
+    /** color ID → {r, g, b} ที่วัดจากภาพ (ว่างถ้า recognize ไม่สำเร็จ) */
+    public Map<Integer, int[]> getColorRgb() {
+        return colorRgb;
     }
 
     public BoardState getBoardState() {

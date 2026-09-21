@@ -3,7 +3,8 @@ package watersort.generator;
 import watersort.model.BoardState;
 import watersort.model.Move;
 import watersort.model.Tube;
-import watersort.solver.BFSSolver;
+import watersort.solver.AStarSolver;
+import watersort.solver.Solver;
 import watersort.solver.SolveResult;
 
 import java.util.*;
@@ -35,7 +36,7 @@ public class PuzzleGenerator {
     }
 
     public PuzzleGenerator(boolean verify) {
-        this(); // verify parameter kept for API compat, always verifies
+        this(); // verify parameter kept for API compat, always verifies (ด้วย A*)
     }
 
     /**
@@ -75,7 +76,7 @@ public class PuzzleGenerator {
             if (countSortedTubes(board) > numColors / 3) continue;
 
             // Verify ด้วย BFS
-            BFSSolver solver = new BFSSolver();
+            Solver solver = new AStarSolver();  // A* ให้ optimal เท่า BFS แต่เร็วกว่ามาก (ด่านหลายสีจึงสร้างได้ทัน)
             SolveResult result = solver.solve(board);
 
             if (result.isSolved() && result.getStepCount() >= 2) {
@@ -97,11 +98,7 @@ public class PuzzleGenerator {
      * @param difficulty EASY / MEDIUM / HARD
      */
     public GeneratedPuzzle generate(int numColors, Difficulty difficulty) {
-        int emptyTubes = switch (difficulty) {
-            case EASY -> 3;   // หลอดว่างเยอะ → ง่ายกว่า
-            case MEDIUM -> 2; // ค่ามาตรฐาน
-            case HARD -> 2;   // หลอดเท่ากันแต่ต้องการ step เยอะขึ้น
-        };
+        int emptyTubes = emptyTubesFor(difficulty);
 
         int minSteps = switch (difficulty) {
             case EASY -> 2;
@@ -117,7 +114,7 @@ public class PuzzleGenerator {
             if (board.isGoal()) continue;
             if (countSortedTubes(board) > numColors / 3) continue;
 
-            BFSSolver solver = new BFSSolver();
+            Solver solver = new AStarSolver();  // A* ให้ optimal เท่า BFS แต่เร็วกว่ามาก (ด่านหลายสีจึงสร้างได้ทัน)
             SolveResult result = solver.solve(board);
 
             if (result.isSolved() && result.getStepCount() >= 2) {
@@ -144,6 +141,14 @@ public class PuzzleGenerator {
 
         // Absolute fallback
         return generate(numColors, emptyTubes);
+    }
+
+    /** จำนวนหลอดว่างของแต่ละระดับความยาก (หลอดว่างเยอะ → ง่ายกว่า) */
+    public static int emptyTubesFor(Difficulty difficulty) {
+        return switch (difficulty) {
+            case EASY -> 3;
+            case MEDIUM, HARD -> 2;   // HARD หลอดเท่า MEDIUM แต่บังคับให้ต้องใช้ step มากขึ้น
+        };
     }
 
     // ─── Internal Methods ──────────────────────────────────────────

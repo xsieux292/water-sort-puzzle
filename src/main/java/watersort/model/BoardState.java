@@ -15,6 +15,11 @@ public class BoardState {
 
     private final Tube[] tubes;
 
+    // Cached lazily — BoardState is treated as immutable ตลอดการค้นหา (applyMove สร้าง state ใหม่เสมอ)
+    // การ cache ช่วยให้ solver ที่เรียก key/hash ซ้ำ ๆ ต่อ state ไม่ต้องคำนวณใหม่ทุกครั้ง
+    private String canonicalKey;
+    private int cachedHash;
+
     public BoardState(Tube[] tubes) {
         this.tubes = tubes;
     }
@@ -124,26 +129,41 @@ public class BoardState {
 
     /**
      * แปลงสถานะเป็น canonical string สำหรับ state caching
-     * เช่น "[1,2,3,4][5,6,7,8][]"
+     *
+     * ใช้ encoding แบบกระชับ: 1 char ต่อ 1 บล็อกสี + ตัวคั่นต่อหลอด
+     * (เดิมใช้ "[1, 2, 3]" ซึ่งยาวและ allocate มากกว่า) ผลลัพธ์ถูก cache ไว้
+     * เพราะ solver เรียกซ้ำหลายครั้งต่อ state เดียวกัน
      */
     public String toCanonicalString() {
-        StringBuilder sb = new StringBuilder();
-        for (Tube tube : tubes) {
-            sb.append(tube.toString());
+        String key = canonicalKey;
+        if (key == null) {
+            StringBuilder sb = new StringBuilder(tubes.length * (Tube.CAPACITY + 1));
+            for (Tube tube : tubes) {
+                for (int j = 0; j < tube.size(); j++) {
+                    sb.append((char) (tube.getColorAt(j) + 1));  // +1 กัน '\0'
+                }
+                sb.append('/');
+            }
+            key = canonicalKey = sb.toString();
         }
-        return sb.toString();
+        return key;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof BoardState other)) return false;
-        return Arrays.equals(this.tubes, other.tubes);
+        return toCanonicalString().equals(other.toCanonicalString());
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(tubes);
+        int h = cachedHash;
+        if (h == 0) {
+            h = toCanonicalString().hashCode();
+            cachedHash = h;
+        }
+        return h;
     }
 
     @Override

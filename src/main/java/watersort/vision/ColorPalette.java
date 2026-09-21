@@ -48,7 +48,7 @@ public class ColorPalette {
         // Red wraps around 0 and 180
         if ((h <= 10 || h >= 170) && s > 100 && v > 80) return 1;
         
-        if (h > 10 && h <= 25 && s > 100 && v > 80) return 2; // Orange
+        if (h > 10 && h <= 25 && s > 100 && v > 120) return 2; // Orange (bright; darker → Brown ด้านล่าง)
         if (h > 10 && h <= 30 && s > 60 && v >= 40 && v <= 120) return 10; // Brown (low value orange)
         
         if (h > 25 && h <= 35 && s > 100 && v > 80) return 3; // Yellow
