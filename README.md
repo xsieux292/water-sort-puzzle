@@ -101,6 +101,21 @@ water-sort-puzzle/
 
 ## 🚀 Quick Start
 
+### 📦 Run without Gradle (Pre-built JAR)
+If you don't have Gradle installed, you can simply run the pre-built JAR file included in the repository:
+
+```bash
+# Launch the Desktop GUI
+java -jar WaterSortPuzzle.jar
+
+# Or run the CLI version
+java -jar WaterSortPuzzle.jar --demo
+```
+
+---
+
+### 🛠️ Run from Source (via Gradle)
+
 ```bash
 # Desktop GUI (JavaFX) — Select between: Image Recognizer or Play Game
 ./gradlew run

@@ -55,6 +55,22 @@ application {
     applicationDefaultJvmArgs = listOf("--enable-native-access=javafx.graphics,ALL-UNNAMED", "-Xmx2g")
 }
 
+tasks.register<Jar>("fatJar") {
+    group = "build"
+    description = "Assembles a fat JAR containing all dependencies."
+    manifest {
+        attributes("Main-Class" to "watersort.Launcher")
+    }
+    archiveBaseName.set("WaterSortPuzzle")
+    archiveClassifier.set("all")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(sourceSets.main.get().output)
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+}
+
 tasks.register<JavaExec>("runCli") {
     group = "application"
     description = "Runs the command-line interface (watersort.Main). Pass arguments with --args=\"--demo\"."
