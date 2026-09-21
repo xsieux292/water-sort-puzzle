@@ -44,27 +44,46 @@ public class ImageRecognizer {
                 return new RecognitionResult(null, tubeRegions, new HashMap<>(), 0.0, warnings, errors, false);
             }
 
-            List<List<Scalar>> allTubeScalars = new ArrayList<>();
-            List<Scalar> coloredScalars = new ArrayList<>();
+            List<List<double[]>> allTubeScalars = new ArrayList<>();
+            List<double[]> flatScalars = new ArrayList<>();
 
-            // 2. Extract HSV
+            // 2. Extract LAB & HSV colors
             for (int i = 0; i < boundsList.size(); i++) {
                 Rectangle b = boundsList.get(i);
                 Rect cvRect = new Rect(b.x, b.y, b.width, b.height);
                 Mat cropped = new Mat(src, cvRect);
                 
-                List<Scalar> scalars = colorExtractor.extractColors(cropped);
+                List<double[]> scalars = colorExtractor.extractColors(cropped);
                 allTubeScalars.add(scalars);
-                
-                for (Scalar s : scalars) {
-                    // Check if not background
-                    double h = s.get(0), sat = s.get(1), v = s.get(2);
-                    if (!(v < 60 && sat < 50)) {
-                        coloredScalars.add(s);
-                    }
-                }
+                flatScalars.addAll(scalars);
                 
                 cropped.close();
+            }
+
+            // The empty slots are always the background, which is the darkest color (lowest L).
+            // We sort all blocks by L descending. We don't know exactly how many colored blocks there are,
+            // but we know it's a multiple of 4, and the rest are background.
+            // Let's find the threshold L that separates the dark background from the colored blocks.
+            // Actually, we can just sort them by L, and since we know background L is usually < 50,
+            // and colored blocks are > 60. But wait, what if we just use a reliable L threshold?
+            // Let's look for the largest gap in L values at the lower end!
+            flatScalars.sort((a, b) -> Double.compare(b[0], a[0])); // Highest L first
+            
+            // We know the number of colored blocks must be a multiple of 4.
+            // Let's assume the background blocks are all identical and have very low L.
+            // Let's just find how many blocks have L > 50.
+            List<double[]> coloredScalars = new ArrayList<>();
+            for (double[] s : flatScalars) {
+                // Background L is usually around 30-45. Colored blocks are > 55 even for dark colors.
+                if (s[0] > 55) {
+                    coloredScalars.add(s);
+                }
+            }
+            
+            // Ensure it's a multiple of 4 by adjusting the threshold dynamically if needed
+            while (coloredScalars.size() % 4 != 0 && coloredScalars.size() < flatScalars.size()) {
+                // Add the next brightest block until we hit a multiple of 4
+                coloredScalars.add(flatScalars.get(coloredScalars.size()));
             }
 
             // 3. Constrained Agglomerative Clustering (ensures max 4 per cluster)
@@ -77,6 +96,10 @@ public class ImageRecognizer {
                 errors.add("No colors detected.");
                 return new RecognitionResult(null, tubeRegions, new HashMap<>(), 0.0, warnings, errors, false);
             }
+
+            // We need a way to know if a scalar from allTubeScalars is in coloredScalars.
+            // Let's just use a threshold based on the lowest L in coloredScalars.
+            double thresholdL = coloredScalars.get(coloredScalars.size() - 1)[0] - 1.0; // anything > this is colored
 
             // Each colored block is initially its own cluster
             List<List<Integer>> clusters = new ArrayList<>();
@@ -111,7 +134,6 @@ public class ImageRecognizer {
                     clusters.get(mergeI).addAll(clusters.get(mergeJ));
                     clusters.remove(mergeJ);
                 } else {
-                    // Cannot merge anymore without violating size constraints (should rarely happen in this specific puzzle)
                     break;
                 }
             }
@@ -124,33 +146,30 @@ public class ImageRecognizer {
                 }
             }
 
-            // Calculate centers for naming
-            List<Scalar> centers = new ArrayList<>();
-            for (int c = 0; c < clusters.size(); c++) {
-                double sumH = 0, sumS = 0, sumV = 0;
-                for (int idx : clusters.get(c)) {
-                    sumH += coloredScalars.get(idx).get(0);
-                    sumS += coloredScalars.get(idx).get(1);
-                    sumV += coloredScalars.get(idx).get(2);
-                }
-                int count = clusters.get(c).size();
-                centers.add(new Scalar(sumH / count, sumS / count, sumV / count, 0));
-            }
-
             // Map each tube's scalars to the color IDs
-            int coloredIndex = 0;
+            // We need to map the original scalars back to the coloredScalars index
             int[][] boardArrays = new int[boundsList.size()][];
             for (int i = 0; i < boundsList.size(); i++) {
-                List<Scalar> scalars = allTubeScalars.get(i);
+                List<double[]> scalars = allTubeScalars.get(i);
                 List<Integer> mapped = new ArrayList<>();
                 
-                for (Scalar s : scalars) {
-                    double h = s.get(0), sat = s.get(1), v = s.get(2);
-                    if (v < 60 && sat < 50) {
+                for (double[] s : scalars) {
+                    if (s[0] <= thresholdL) {
                         continue; // Empty slot
                     }
-                    mapped.add(assignments[coloredIndex] + 1); // 1-based color ID
-                    coloredIndex++;
+                    
+                    // Find exactly which coloredScalar this is
+                    int matchedIndex = -1;
+                    for(int j=0; j<coloredScalars.size(); j++) {
+                        if (coloredScalars.get(j) == s) {
+                            matchedIndex = j;
+                            break;
+                        }
+                    }
+                    
+                    if (matchedIndex != -1) {
+                        mapped.add(assignments[matchedIndex] + 1); // 1-based color ID
+                    }
                 }
                 
                 int[] arr = new int[mapped.size()];
@@ -166,12 +185,8 @@ public class ImageRecognizer {
 
             // Create Color Map
             Map<Integer, String> colorMap = new HashMap<>();
-            ColorPalette predefined = new ColorPalette(); 
-            for (int c = 0; c < centers.size(); c++) {
-                Scalar center = centers.get(c);
-                int predefinedId = predefined.mapToColorId((int)center.get(0), (int)center.get(1), (int)center.get(2));
-                String name = predefined.getColorNames().getOrDefault(predefinedId, "Color_" + (c+1));
-                colorMap.put(c + 1, name + "_" + (c+1)); // append ID to ensure unique names for validation
+            for (int c = 0; c < k; c++) {
+                colorMap.put(c + 1, "Color_" + (c+1));
             }
 
             // 4. Validation
@@ -215,7 +230,7 @@ public class ImageRecognizer {
         }
     }
     
-    private double clusterDistance(List<Integer> c1, List<Integer> c2, List<Scalar> allScalars) {
+    private double clusterDistance(List<Integer> c1, List<Integer> c2, List<double[]> allScalars) {
         // Average linkage
         double sumDist = 0;
         for (int i : c1) {
@@ -226,14 +241,11 @@ public class ImageRecognizer {
         return sumDist / (c1.size() * c2.size());
     }
     
-    private double colorDistance(Scalar s1, Scalar s2) {
-        // Simple Euclidean distance in HSV space
-        // Hue is circular (0-180 in OpenCV)
-        double dh = Math.min(Math.abs(s1.get(0) - s2.get(0)), 180 - Math.abs(s1.get(0) - s2.get(0)));
-        // Weight Hue more because Saturation and Value can vary due to shadows
-        double dhW = dh * 2.0; 
-        double ds = s1.get(1) - s2.get(1);
-        double dv = s1.get(2) - s2.get(2);
-        return Math.sqrt(dhW*dhW + ds*ds + dv*dv);
+    private double colorDistance(double[] s1, double[] s2) {
+        // Simple Euclidean distance in LAB space
+        double dL = s1[0] - s2[0];
+        double da = s1[1] - s2[1];
+        double db = s1[2] - s2[2];
+        return Math.sqrt(dL*dL + da*da + db*db);
     }
 }
