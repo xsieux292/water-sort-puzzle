@@ -102,4 +102,36 @@ class AStarSolverTest {
         BoardState threeChanges = BoardState.fromArrays(new int[][]{{1, 2, 1, 2}});
         assertEquals(3, solver.heuristic(threeChanges));
     }
+    
+    @Test
+    void testAStarPerformanceVsBFS() {
+        // A complex puzzle (e.g. 7-8 colors) to show A* explores fewer states
+        BoardState board = BoardState.fromArrays(new int[][]{
+            {1, 2, 3, 4},
+            {5, 6, 7, 1},
+            {2, 3, 4, 5},
+            {6, 7, 1, 2},
+            {3, 4, 5, 6},
+            {7, 1, 2, 3},
+            {4, 5, 6, 7},
+            {},
+            {}
+        });
+        
+        AStarSolver aStar = new AStarSolver();
+        SolveResult resultAStar = aStar.solve(board);
+        
+        BFSSolver bfs = new BFSSolver();
+        SolveResult resultBFS = bfs.solve(board);
+        
+        assertTrue(resultAStar.isSolved());
+        assertTrue(resultBFS.isSolved());
+        
+        // A* should find the same shortest path
+        assertEquals(resultBFS.getStepCount(), resultAStar.getStepCount());
+        
+        // A* should explore significantly fewer states than BFS for complex puzzles
+        assertTrue(resultAStar.getStatesExplored() < resultBFS.getStatesExplored(), 
+            "A* (" + resultAStar.getStatesExplored() + ") should explore fewer states than BFS (" + resultBFS.getStatesExplored() + ")");
+    }
 }
