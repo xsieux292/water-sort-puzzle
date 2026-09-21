@@ -266,6 +266,11 @@ Tube 5 (bottom to top, comma-separated):
 }
 ```
 
+**Option C — Screenshot upload (Phase 2.5):**
+```
+ผู้ใช้อัปโหลดภาพ PNG/JPG ของหน้าจอเกม → ระบบ auto-detect → BoardState
+```
+
 ### 6.2 Output Format
 
 ```
@@ -309,3 +314,154 @@ Step 12: Pour Tube 3 → Tube 5    (Green)
 | Unsolvable puzzle | แสดง "No solution found" พร้อมจำนวน states ที่สำรวจ |
 | Timeout (เกิน N วินาที) | หยุดค้นหา แสดง partial result |
 | Out of memory | Catch `OutOfMemoryError`, แนะนำลดขนาดปัญหา |
+
+---
+
+## 9. Image Recognition Pipeline (Phase 2.5)
+
+> ข้อกำหนดสำหรับระบบ auto-detect หลอดและสีจากภาพหน้าจอเกม
+
+### 9.1 Input Requirements
+
+| Property | Requirement |
+|---|---|
+| **Format** | PNG, JPG, JPEG, BMP |
+| **Resolution** | ≥ 500×500 px (recommended ≥ 720p) |
+| **Content** | หน้าจอเกม Water Sort Puzzle ที่เห็นหลอดทั้งหมดชัดเจน |
+| **Orientation** | Portrait หรือ Landscape |
+| **Restrictions** | ไม่บังหลอด, ไม่มี popup/overlay ทับ |
+
+### 9.2 Tube Detection Algorithm
+
+```
+function detectTubes(image):
+    gray ← convertToGrayscale(image)
+    blurred ← gaussianBlur(gray, kernelSize=5)
+    edges ← cannyEdgeDetect(blurred, threshold1=50, threshold2=150)
+    contours ← findContours(edges)
+
+    tubeContours ← []
+    for each contour in contours:
+        rect ← boundingRect(contour)
+        aspectRatio ← rect.height / rect.width
+
+        if 2.0 ≤ aspectRatio ≤ 5.0:           // หลอดแคบยาว
+            if minArea ≤ rect.area ≤ maxArea:   // ขนาดอยู่ในช่วงที่คาดหวัง
+                tubeContours.append(rect)
+
+    // Remove duplicates (overlapping contours)
+    tubeContours ← nonMaxSuppression(tubeContours, overlapThreshold=0.5)
+
+    // Sort: left-to-right, then top-to-bottom (row-major order)
+    tubeContours ← sortByPosition(tubeContours)
+
+    return tubeContours
+```
+
+### 9.3 Color Extraction Algorithm
+
+```
+function extractColors(tubeImage):
+    height ← tubeImage.height
+    slotHeight ← height / 4    // 4 slots per tube
+    margin ← 0.2               // 20% margin to avoid tube edges
+
+    colors ← []
+    for slot from 0 to 3:      // top to bottom
+        y1 ← slot * slotHeight + (slotHeight * margin)
+        y2 ← (slot + 1) * slotHeight - (slotHeight * margin)
+        x1 ← tubeImage.width * margin
+        x2 ← tubeImage.width * (1 - margin)
+
+        region ← crop(tubeImage, x1, y1, x2, y2)
+        hsvRegion ← convertToHSV(region)
+        dominantHSV ← kMeansCluster(hsvRegion, k=1)
+
+        if isBgColor(dominantHSV):   // dark / transparent
+            continue                  // slot is empty
+        else:
+            colorId ← mapToNearestColor(dominantHSV, palette)
+            colors.append(colorId)
+
+    return colors    // bottom-to-top order (reversed for stack)
+```
+
+### 9.4 Color Palette (Predefined HSV Ranges)
+
+| Color Name | Hue Range | Saturation | Value | Notes |
+|---|---|---|---|---|
+| Red | 0–10, 170–180 | > 100 | > 80 | Wraps around in HSV |
+| Orange | 10–25 | > 100 | > 80 | |
+| Yellow | 25–35 | > 100 | > 80 | |
+| Olive/YellowGreen | 35–50 | > 60 | > 60 | |
+| Green | 50–80 | > 80 | > 60 | |
+| Cyan | 80–100 | > 80 | > 60 | |
+| Blue | 100–130 | > 80 | > 60 | |
+| Purple | 130–155 | > 60 | > 50 | |
+| Pink | 155–170 | > 40 | > 80 | |
+| Brown | 10–30 | > 60 | 40–120 | Low value distinguishes from orange |
+| Gray | any | < 40 | 80–180 | Low saturation |
+| *(Background)* | any | < 30 | < 60 | Dark = empty slot |
+
+> **Note**: ค่าเหล่านี้เป็นค่าเริ่มต้น ต้อง tune ตามจริงเมื่อทดสอบกับภาพตัวอย่าง
+> อีกวิธีคือ auto-detect palette: รวม dominant colors จากทุก slot → K-Means cluster เป็น N สี
+
+### 9.5 Validation Rules
+
+```
+function validateRecognition(result):
+    colorCounts ← countOccurrences(result.allColors)
+
+    errors ← []
+    for each (color, count) in colorCounts:
+        if count ≠ TUBE_CAPACITY:     // ทุกสีต้องมี = 4
+            errors.append("Color " + color + " has " + count + " blocks (expected 4)")
+
+    emptyTubeCount ← count tubes where tube.isEmpty()
+    if emptyTubeCount < 2:
+        errors.append("Only " + emptyTubeCount + " empty tubes (expected ≥ 2)")
+
+    totalColorBlocks ← sum(colorCounts.values)
+    expectedBlocks ← (result.tubeCount - emptyTubeCount) * TUBE_CAPACITY
+    if totalColorBlocks ≠ expectedBlocks:
+        errors.append("Block count mismatch: " + totalColorBlocks + " vs " + expectedBlocks)
+
+    return errors
+```
+
+### 9.6 Recognition Result Data Structures
+
+```java
+/**
+ * ผลลัพธ์จากการ recognize ภาพหน้าจอเกม
+ */
+class RecognitionResult {
+    BoardState boardState;             // สถานะที่ extract ได้ (null ถ้า invalid)
+    List<TubeRegion> tubeRegions;      // ตำแหน่ง + สีของแต่ละหลอด
+    Map<Integer, String> colorMap;     // color ID → ชื่อสี (เช่น 1 → "Red")
+    double confidence;                 // ความมั่นใจรวม (0.0–1.0)
+    List<String> warnings;            // เตือนเรื่อง slot ที่ไม่ชัด
+    List<String> errors;              // ข้อผิดพลาด (ถ้ามี)
+    boolean isValid;                   // validation ผ่านหรือไม่
+}
+
+class TubeRegion {
+    int tubeIndex;                     // ลำดับหลอด (0-based)
+    Rectangle bounds;                  // พิกัด (x, y, w, h) ในภาพต้นฉบับ
+    int[] extractedColors;             // สีที่ extract ได้ (bottom → top)
+    double[] slotConfidences;          // ความมั่นใจของแต่ละ slot
+}
+```
+
+### 9.7 User Confirmation Flow
+
+```
+1. ระบบแสดงภาพต้นฉบับ + วาด bounding box รอบหลอดที่ตรวจพบ
+2. ด้านข้างแสดง BoardState ที่ extract ได้ (หลอดเป็นกราฟิก)
+3. ถ้ามี warnings → highlight slot ที่ไม่มั่นใจ (เช่น ขอบสีแดง)
+4. ผู้ใช้สามารถ:
+   a. ✅ Confirm — ยืนยันว่าถูกต้อง → ไปขั้น Solve
+   b. 🎨 Edit — คลิกที่ slot เพื่อเปลี่ยนสี → แก้ไขแล้ว Confirm
+   c. 🔄 Re-upload — อัปโหลดภาพใหม่
+```
+

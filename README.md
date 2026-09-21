@@ -1,6 +1,6 @@
 # 🧪 Water Sort Puzzle — Auto-Solver
 
-> โปรแกรมแก้เกม Water Sort Puzzle อัตโนมัติ ใช้อัลกอริทึม BFS/A* หาเส้นทางที่สั้นที่สุด
+> เครื่องมือครบวงจรสำหรับแก้เกม Water Sort Puzzle — ถ่ายภาพหน้าจอ → ระบบ detect อัตโนมัติ → หาวิธีแก้ → แสดง step-by-step
 
 [![Java](https://img.shields.io/badge/Java-17+-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -9,9 +9,9 @@
 
 ## 📌 Overview
 
-**Water Sort Puzzle Auto-Solver** คือโปรแกรมที่รับข้อมูลสถานะเริ่มต้นของหลอดแก้วทั้งหมด
-แล้วใช้อัลกอริทึมการค้นหา (Search Algorithm) คำนวณลำดับการเทน้ำ (Move Sequence)
-ที่จะนำไปสู่สถานะชนะ (Goal State) โดยอัตโนมัติ
+**Water Sort Puzzle Auto-Solver** ไม่ใช่แค่โปรแกรมแก้เกม — แต่เป็น **เครื่องมือครบวงจร**
+ที่ผู้ใช้เพียงอัปโหลดภาพหน้าจอเกม → ระบบจะ detect หลอดแก้ว + แยกสีอัตโนมัติ
+→ คำนวณหาวิธีแก้ที่สั้นที่สุด → แสดงผลเป็น animation ทีละขั้นตอน
 
 ### ปัญหาที่แก้ได้
 
@@ -34,10 +34,21 @@
 - [ ] CLI Input/Output
 - [ ] Unit Tests
 
-### Phase 2 — UI (future)
-- [ ] Desktop GUI (JavaFX) — แสดงหลอดแก้วเป็นภาพ ลาก-วางเทน้ำ
-- [ ] Step-by-step animation ของ solution
-- [ ] Web UI (optional) — พอร์ตเป็น JavaScript/TypeScript
+### Phase 2.5 — Image Recognition Pipeline ★
+- [ ] 📸 รับภาพหน้าจอเกม (PNG/JPG)
+- [ ] 🔍 Detect & Crop หลอดแก้วจากภาพ (OpenCV / Classical CV)
+- [ ] 🎨 Extract สีแต่ละ slot ด้วย HSV + K-Means
+- [ ] ✅ สร้าง `BoardState` อัตโนมัติ + Validation
+- [ ] 👤 User Preview & Confirmation ก่อน Solve
+
+### Phase 3 — UI + Solution Playback
+- [ ] 📸 Drag & Drop อัปโหลดภาพหน้าจอ
+- [ ] 🔍 แสดง Recognition Preview (ไฮไลท์หลอดบนภาพต้นฉบับ)
+- [ ] 🎨 Board Editor — แก้ไขสีที่ recognize ผิด
+- [ ] ▶️ Solve → แสดง animation ทีละ step
+- [ ] ⏮️⏭️ Step Navigator (เดินหน้า/ถอยหลัง)
+- [ ] ▶️ Auto-Play mode
+- [ ] Web UI (optional)
 
 ---
 
@@ -62,6 +73,12 @@ water-sort-puzzle/
 │               │   ├── Solver.java          (interface)
 │               │   ├── BFSSolver.java
 │               │   └── AStarSolver.java
+│               ├── vision/         # ★ Image Recognition Pipeline
+│               │   ├── TubeDetector.java     (detect & crop tubes)
+│               │   ├── ColorExtractor.java   (extract colors per slot)
+│               │   ├── ColorPalette.java     (HSV color mapping)
+│               │   ├── ImageRecognizer.java   (orchestrator)
+│               │   └── RecognitionResult.java (result data)
 │               ├── util/           # Helpers
 │               │   └── BoardParser.java
 │               └── Main.java       # Entry point (CLI)
@@ -73,8 +90,10 @@ water-sort-puzzle/
                 ├── model/
                 │   ├── TubeTest.java
                 │   └── BoardStateTest.java
-                └── solver/
-                    └── BFSSolverTest.java
+                ├── solver/
+                │   └── BFSSolverTest.java
+                └── vision/
+                    └── ImageRecognizerTest.java
 ```
 
 ---
@@ -111,6 +130,18 @@ Step  3: Pour Tube 1 → Tube 2
 Step 12: Pour Tube 3 → Tube 5
 
 🎉 All tubes sorted!
+```
+
+### End-to-End Flow (with Image Recognition)
+
+```
+📸 Upload Screenshot → 🔍 Auto-Detect Tubes → 🎨 Extract Colors
+                              ↓
+                  👤 User Preview & Confirm
+                              ↓
+                      ▶️ Solve (BFS/A*)
+                              ↓
+                  ⏮️ Step-by-step Animation ⏭️
 ```
 
 ---
