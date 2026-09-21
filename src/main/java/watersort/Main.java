@@ -32,6 +32,17 @@ public class Main {
                 case "--generate" -> handleGenerate(args);
                 case "--batch" -> handleBatch(args);
                 case "--demo" -> handleSolve(createDemoPuzzle(), "Demo puzzle");
+                case "--file" -> {
+                    if (args.length > 1) {
+                        try {
+                            handleSolve(BoardParser.parseFromJsonFile(args[1]), "File: " + args[1]);
+                        } catch (Exception e) {
+                            System.err.println("❌ Error parsing file: " + e.getMessage());
+                        }
+                    } else {
+                        System.err.println("❌ Missing file path after --file");
+                    }
+                }
                 case "--help" -> printHelp();
                 default -> handleSolve(parseInput(), "User puzzle");
             }
@@ -105,7 +116,7 @@ public class Main {
         System.out.println(board);
         System.out.println("🔍 Solving...\n");
 
-        Solver solver = new BFSSolver();
+        Solver solver = new watersort.solver.AStarSolver();
         SolveResult result = solver.solve(board);
 
         System.out.println(result);

@@ -73,5 +73,32 @@ public class BoardParser {
         return reversed;
     }
 
-    // TODO: เพิ่ม parseFromJsonFile(String filePath) ในอนาคต
+    /**
+     * Parse จาก JSON file
+     * รูปแบบ: { "tubes": [ ["R", "B"], ["B", "R"], [], [] ] }
+     */
+    public static BoardState parseFromJsonFile(String filePath) throws Exception {
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        try (java.io.Reader reader = new java.io.FileReader(filePath)) {
+            PuzzleJson json = gson.fromJson(reader, PuzzleJson.class);
+            if (json == null || json.tubes == null) {
+                throw new IllegalArgumentException("Invalid JSON format: missing 'tubes' array.");
+            }
+            
+            String[] tubeStrings = new String[json.tubes.size()];
+            for (int i = 0; i < json.tubes.size(); i++) {
+                List<String> tube = json.tubes.get(i);
+                if (tube == null || tube.isEmpty()) {
+                    tubeStrings[i] = "";
+                } else {
+                    tubeStrings[i] = String.join(",", tube);
+                }
+            }
+            return parseFromStrings(tubeStrings);
+        }
+    }
+
+    private static class PuzzleJson {
+        List<List<String>> tubes;
+    }
 }
