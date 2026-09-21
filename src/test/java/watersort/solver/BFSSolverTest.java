@@ -1,18 +1,84 @@
 package watersort.solver;
 
-// TODO: Add JUnit 5 dependency and implement tests
+import org.junit.jupiter.api.Test;
+import watersort.model.BoardState;
+import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for BFSSolver
- *
- * Planned test cases:
- * - testSimplePuzzle: 3 หลอด, 1 สี → แก้ได้ใน 1 step
- * - testMediumPuzzle: 5 หลอด, 3 สี → แก้ได้ optimal
- * - testUnsolvable: ด่านที่แก้ไม่ได้ → return failure
- * - testAlreadySolved: กระดานที่ sorted แล้ว → 0 steps
- * - testShortestPath: เทียบว่า BFS ให้ shortest path จริง
- * - testLargePuzzle: 14 หลอด → แก้ได้ภายในเวลาที่กำหนด
- */
-public class BFSSolverTest {
-    // TODO: Implement with JUnit 5
+class BFSSolverTest {
+
+    @Test
+    void testAlreadySolved() {
+        BoardState board = BoardState.fromArrays(new int[][]{
+            {1, 1, 1, 1},
+            {}
+        });
+        
+        BFSSolver solver = new BFSSolver();
+        SolveResult result = solver.solve(board);
+        
+        assertTrue(result.isSolved());
+        assertEquals(0, result.getStepCount());
+        assertEquals(1, result.getStatesExplored());
+    }
+
+    @Test
+    void testSimplePuzzle() {
+        BoardState board = BoardState.fromArrays(new int[][]{
+            {1, 1, 1},
+            {1},
+            {}
+        });
+        
+        BFSSolver solver = new BFSSolver();
+        SolveResult result = solver.solve(board);
+        
+        assertTrue(result.isSolved());
+        assertTrue(result.getStepCount() <= 2);
+    }
+
+    @Test
+    void testMediumPuzzle() {
+        BoardState board = BoardState.fromArrays(new int[][]{
+            {1, 2, 1, 3},
+            {2, 3, 1, 2},
+            {3, 1, 3, 2},
+            {},
+            {}
+        });
+        
+        BFSSolver solver = new BFSSolver();
+        SolveResult result = solver.solve(board);
+        
+        assertTrue(result.isSolved());
+        assertEquals(10, result.getStepCount()); // optimal for this demo puzzle
+    }
+
+    @Test
+    void testUnsolvable() {
+        BoardState board = BoardState.fromArrays(new int[][]{
+            {1, 2, 1, 2},
+            {2, 1, 2, 1}
+        }); // full tubes, no empty tubes
+        
+        BFSSolver solver = new BFSSolver();
+        SolveResult result = solver.solve(board);
+        
+        assertFalse(result.isSolved());
+    }
+
+    @Test
+    void testShortestPath() {
+        BoardState board = BoardState.fromArrays(new int[][]{
+            {1, 1, 2, 2},
+            {2, 2, 1, 1},
+            {}
+        });
+        
+        BFSSolver solver = new BFSSolver();
+        SolveResult result = solver.solve(board);
+        
+        assertTrue(result.isSolved());
+        // optimal steps for this simple one is 3
+        assertEquals(3, result.getStepCount());
+    }
 }
